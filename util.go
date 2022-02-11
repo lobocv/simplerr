@@ -31,16 +31,16 @@ func HasErrorCode(err error, code Code) bool {
 	return false
 }
 
-// IsSkippable checks the error or any error in the chain, is skippable
-func IsSkippable(err error) (skipReason string, skippable bool) {
+// IsBenign checks the error or any error in the chain, is benign
+func IsBenign(err error) (reason string, benign bool) {
 	e := As(err)
 	if e == nil {
 		return "", false
 	}
-	if e.skip {
-		return e.skipReason, e.skip
+	if e.benign {
+		return e.benignReason, e.benign
 	}
-	return IsSkippable(e.Unwrap())
+	return IsBenign(e.Unwrap())
 }
 
 // IsSilent checks the error or any error in the chain, is silent

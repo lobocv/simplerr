@@ -15,11 +15,11 @@ type SimpleError struct {
 	// silent is a flag that signals that this error should be recorded or logged silently
 	// eg. This error should not be logged at all
 	silent bool
-	// skip is a flag that signals that, from the application's perspective, this error is a benign error.
+	// benign is a flag that signals that, from the application's perspective, this error is a benign error.
 	// eg. This error can be logged at INFO level and then discarded.
-	skip bool
-	// skipReason is the reason this error was marked as "skip"
-	skipReason string
+	benign bool
+	// benignReason is the reason this error was marked as "benign"
+	benignReason string
 }
 
 func New(err error) *SimpleError {
@@ -47,22 +47,22 @@ func (e *SimpleError) Code(code Code) *SimpleError {
 	return e
 }
 
-// Skip marks the error as "skip"
-func (e *SimpleError) Skip() *SimpleError {
-	e.skip = true
+// Benign marks the error as "benign"
+func (e *SimpleError) Benign() *SimpleError {
+	e.benign = true
 	return e
 }
 
-// SkipReason marks the error as "skip" and attaches a reason it was marked skip.
-func (e *SimpleError) SkipReason(reason string) *SimpleError {
-	e.skip = true
-	e.skipReason = reason
+// BenignReason marks the error as "benign" and attaches a reason it was marked benign.
+func (e *SimpleError) BenignReason(reason string) *SimpleError {
+	e.benign = true
+	e.benignReason = reason
 	return e
 }
 
-// GetSkipReason returns the skip reason and whether the error was marked as skip
-func (e *SimpleError) GetSkipReason() (string, bool) {
-	return e.skipReason, e.skip
+// GetBenignReason returns the benign reason and whether the error was marked as benign
+func (e *SimpleError) GetBenignReason() (string, bool) {
+	return e.benignReason, e.benign
 }
 
 // GetSilent returns if the error is silent

@@ -50,62 +50,62 @@ func (s *TestSuite) TestErrorWrapping() {
 
 }
 
-func (s *TestSuite) TestSkippable() {
+func (s *TestSuite) TestBenign() {
 	original := fmt.Errorf("test")
 
-	s.Run("stdlib are not set as skip", func() {
-		reason, skip := IsSkippable(original)
+	s.Run("stdlib are not set as benign", func() {
+		reason, benign := IsBenign(original)
 		s.Empty(reason)
-		s.False(skip)
+		s.False(benign)
 	})
 
-	s.Run("wrapped errors are not set as skip by default", func() {
+	s.Run("wrapped errors are not set as benign by default", func() {
 		serr := Wrap(original, "wrapped")
-		gotReason, isSkip := serr.GetSkipReason()
+		gotReason, isBenign := serr.GetBenignReason()
 		s.Empty(gotReason)
-		s.False(isSkip)
+		s.False(isBenign)
 	})
 
-	s.Run("using SkipReason to set skip", func() {
+	s.Run("using BenignReason to set benign", func() {
 		serr := Wrap(original, "wrapped")
-		_ = serr.SkipReason("good reason")
-		gotReason, isSkip := serr.GetSkipReason()
+		_ = serr.BenignReason("good reason")
+		gotReason, isBenign := serr.GetBenignReason()
 		s.Equal(gotReason, "good reason")
-		s.True(isSkip)
-		gotReason, isSkip = IsSkippable(serr)
+		s.True(isBenign)
+		gotReason, isBenign = IsBenign(serr)
 		s.Equal(gotReason, "good reason")
-		s.True(isSkip)
+		s.True(isBenign)
 	})
 
-	s.Run("using Skip to set skip", func() {
+	s.Run("using Benign to set benign", func() {
 		serr := Wrap(original, "wrapped")
-		_ = serr.Skip()
-		gotReason, isSkip := serr.GetSkipReason()
+		_ = serr.Benign()
+		gotReason, isBenign := serr.GetBenignReason()
 		s.Empty(gotReason)
-		s.True(isSkip)
-		gotReason, isSkip = IsSkippable(serr)
+		s.True(isBenign)
+		gotReason, isBenign = IsBenign(serr)
 		s.Empty(gotReason)
-		s.True(isSkip)
+		s.True(isBenign)
 	})
 
-	s.Run("check wrapping DOES NOT hide the skip", func() {
-		serr := Wrap(original, "wrapped").Skip()
+	s.Run("check wrapping DOES NOT hide the benign", func() {
+		serr := Wrap(original, "wrapped").Benign()
 		wrapped := Wrap(serr, "wrapped")
-		gotReason, isSkip := IsSkippable(wrapped)
+		gotReason, isBenign := IsBenign(wrapped)
 		s.Empty(gotReason, "")
-		s.True(isSkip)
+		s.True(isBenign)
 		wrappedstdlib := fmt.Errorf("stdlib wrap %w", wrapped)
-		gotReason, isSkip = IsSkippable(wrappedstdlib)
+		gotReason, isBenign = IsBenign(wrappedstdlib)
 		s.Empty(gotReason, "")
-		s.True(isSkip)
+		s.True(isBenign)
 	})
 
-	s.Run("check opaquing DOES hide the skip", func() {
-		serr := Wrap(original, "wrapped").Skip()
+	s.Run("check opaquing DOES hide the benign", func() {
+		serr := Wrap(original, "wrapped").Benign()
 		opaque := fmt.Errorf("stdlib wrap %s", serr)
-		gotReason, isSkip := IsSkippable(opaque)
+		gotReason, isBenign := IsBenign(opaque)
 		s.Empty(gotReason, "")
-		s.False(isSkip)
+		s.False(isBenign)
 	})
 }
 
@@ -137,8 +137,8 @@ func (s *TestSuite) TestSilent() {
 		s.True(IsSilent(wrappedstdlib))
 	})
 
-	s.Run("check opaquing DOES hide the skip", func() {
-		serr := Wrap(original, "wrapped").Skip()
+	s.Run("check opaquing DOES hide the benign", func() {
+		serr := Wrap(original, "wrapped").Benign()
 		opaque := fmt.Errorf("stdlib wrap %s", serr)
 		s.False(IsSilent(opaque))
 	})
