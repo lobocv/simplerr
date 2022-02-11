@@ -39,20 +39,18 @@ func NewRegistry() *Registry {
 	}
 }
 
-// RegisterErrorCodes registers custom error codes in the registry. This call may panic if a reserved error code is used.
+// RegisterErrorCode registers custom error codes in the registry. This call may panic if a reserved error code is used.
 // This method should be called early on application startup.
-func (r *Registry) RegisterErrorCodes(newCodes map[Code]string) {
-	for code, description := range newCodes {
-		if code < NumberOfReservedCodes {
-			panic(fmt.Sprintf("SimpleError codes 0 to %d are reserved.", NumberOfReservedCodes-1))
-		}
-
-		if _, exists := defaultErrorCodes[code]; exists {
-			panic("error code %s:%d already registered")
-		}
-
-		r.codeDescriptions[code] = description
+func (r *Registry) RegisterErrorCode(code Code, description string) {
+	if code < NumberOfReservedCodes {
+		panic(fmt.Sprintf("SimpleError codes 0 to %d are reserved.", NumberOfReservedCodes-1))
 	}
+
+	if _, exists := defaultErrorCodes[code]; exists {
+		panic("error code %s:%d already registered")
+	}
+
+	r.codeDescriptions[code] = description
 }
 
 // RegisterErrorConversions registers an error conversion function
@@ -67,4 +65,8 @@ func (r *Registry) ErrorCodes() map[Code]string {
 		codes[k] = v
 	}
 	return codes
+}
+
+func (r *Registry) CodeDescription(c Code) string {
+	return r.codeDescriptions[c]
 }

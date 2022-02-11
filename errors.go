@@ -115,6 +115,11 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 	return e
 }
 
+// Description returns the description of the error code
+func (e *SimpleError) Description() string {
+	return registry.CodeDescription(e.code)
+}
+
 // Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error
 func (e *SimpleError) Unwrap() error {
 	return errors.Unwrap(e.err)

@@ -187,3 +187,26 @@ func (s *TestSuite) TestAuxiliaryFields() {
 	s.Equal(expected, serr.GetAuxiliary())
 
 }
+
+func (s *TestSuite) TestErrorCodeDescriptions() {
+	serr := Newf("something")
+	s.Equal("unknown", serr.Description())
+	_ = serr.Code(CodeNotSupported)
+	s.Equal("not supported", serr.Description())
+}
+
+func (s *TestSuite) TestCustomRegistry() {
+	r := NewRegistry()
+	const CodeCustom = 100
+	r.RegisterErrorCode(CodeCustom, "custom")
+	// Because the registry is a global, to prevent mucking with other tests, set it back afterwards
+	defaultRegistry := registry
+	SetRegistry(r)
+	defer SetRegistry(defaultRegistry)
+
+	serr := Newf("something").Code(CodeNotFound)
+	s.Equal("", serr.Description(), "custom registry doesnt have NotFound code defined")
+
+	serr = serr.Code(CodeCustom)
+	s.Equal("custom", serr.Description())
+}
