@@ -10,14 +10,14 @@ import (
 )
 
 var defaultMapping = map[simplerr.Code]codes.Code{
-	simplerr.CodeAlreadyExists:   codes.AlreadyExists,
-	simplerr.CodeNotFound:        codes.NotFound,
-	simplerr.CodeTimedOut:        codes.DeadlineExceeded,
-	simplerr.CodeCanceled:        codes.Canceled,
-	simplerr.CodeUnauthenticated: codes.Unauthenticated,
-	simplerr.CodeInvalidAuth:     codes.PermissionDenied,
-	simplerr.CodeNotImplemented:  codes.Unimplemented,
-	simplerr.CodeInvalidArgument: codes.InvalidArgument,
+	simplerr.CodeAlreadyExists:    codes.AlreadyExists,
+	simplerr.CodeNotFound:         codes.NotFound,
+	simplerr.CodeDeadlineExceeded: codes.DeadlineExceeded,
+	simplerr.CodeCanceled:         codes.Canceled,
+	simplerr.CodeUnauthenticated:  codes.Unauthenticated,
+	simplerr.CodePermissionDenied: codes.PermissionDenied,
+	simplerr.CodeNotImplemented:   codes.Unimplemented,
+	simplerr.CodeInvalidArgument:  codes.InvalidArgument,
 }
 
 // DefaultMapping returns the default mapping of SimpleError codes to gRPC error codes

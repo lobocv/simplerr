@@ -19,7 +19,7 @@ func ContextCanceled(err error) *SimpleError {
 
 func ContextDeadlineExceeded(err error) *SimpleError {
 	if errors.Is(err, context.DeadlineExceeded) {
-		return New(err).Code(CodeTimedOut)
+		return New(err).Code(CodeDeadlineExceeded)
 	}
 	return nil
 }

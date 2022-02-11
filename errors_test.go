@@ -162,7 +162,7 @@ func (s *TestSuite) TestConvert() {
 	s.Run("convert non-simple error to simple error (with conversions)", func() {
 		err := context.DeadlineExceeded
 		got := Convert(err)
-		s.Equal(got, New(err).Code(CodeTimedOut))
+		s.Equal(got, New(err).Code(CodeDeadlineExceeded))
 	})
 
 }
