@@ -7,7 +7,8 @@ const (
 	CodeNotFound
 	CodeNothingUpdated
 	CodeNothingDeleted
-	CodeInvalidParameter
+	CodeInvalidArgument
+	CodeUnauthenticated
 	CodeInvalidAuth
 	CodeConstraintViolated
 	CodeNotSupported
@@ -26,7 +27,8 @@ var defaultErrorCodes = map[Code]string{
 	CodeNotFound:           "not found",
 	CodeNothingUpdated:     "nothing was updated",
 	CodeNothingDeleted:     "nothing was deleted",
-	CodeInvalidParameter:   "invalid parameter",
+	CodeInvalidArgument:    "invalid argument",
+	CodeUnauthenticated:    "unauthenticated",
 	CodeInvalidAuth:        "invalid authentication details",
 	CodeConstraintViolated: "constraint violated",
 	CodeNotSupported:       "not supported",
