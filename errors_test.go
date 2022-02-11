@@ -19,7 +19,7 @@ func TestErrors(t *testing.T) {
 
 func (s *TestSuite) TestErrorWrapping() {
 	original := fmt.Errorf("test")
-	notfound := NewNotFoundErrorW(original, "wrapped in not found")
+	notfound := Wrap(original, "wrapped in not found").Code(CodeNotFound)
 	serviceErr := Wrap(notfound, "manually wrapped")
 	wrappedErr := fmt.Errorf("stdlib wrapper: %w", serviceErr)
 	opaqueErr := fmt.Errorf("opaque: %v", serviceErr)
@@ -43,10 +43,10 @@ func (s *TestSuite) TestErrorWrapping() {
 	s.Nil(As(original))
 
 	// Test that we can detect if the error chain contains NotFoundErrors
-	s.False(IsNotFoundError(original))
-	s.True(IsNotFoundError(notfound))
-	s.True(IsNotFoundError(serviceErr))
-	s.True(IsNotFoundError(wrappedErr))
+	s.False(HasErrorCode(original, CodeNotFound))
+	s.True(HasErrorCode(notfound, CodeNotFound))
+	s.True(HasErrorCode(serviceErr, CodeNotFound))
+	s.True(HasErrorCode(wrappedErr, CodeNotFound))
 
 }
 
