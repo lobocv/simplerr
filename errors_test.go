@@ -166,3 +166,24 @@ func (s *TestSuite) TestConvert() {
 	})
 
 }
+
+func (s *TestSuite) TestAuxiliaryFields() {
+	serr := Newf("something").Aux("one", 1, "two", 2.0, "three", "THREE")
+	expected := map[string]interface{}{
+		"one":   1,
+		"two":   2.0,
+		"three": "THREE",
+	}
+	s.Equal(expected, serr.GetAuxiliary())
+
+	// Add more fields, but this time with one incomplete KV pair
+	serr = serr.Aux("four", 4, "no_value")
+	expected["four"] = 4
+	s.Equal(expected, serr.GetAuxiliary())
+
+	// Add more fields but this time with a map
+	serr = serr.AuxMap(map[string]interface{}{"five": 5})
+	expected["five"] = 5
+	s.Equal(expected, serr.GetAuxiliary())
+
+}

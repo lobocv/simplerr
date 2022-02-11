@@ -20,6 +20,8 @@ type SimpleError struct {
 	benign bool
 	// benignReason is the reason this error was marked as "benign"
 	benignReason string
+	// auxiliary are auxiliary informational fields that can be attached to the error
+	auxiliary map[string]interface{}
 }
 
 func New(err error) *SimpleError {
@@ -73,6 +75,43 @@ func (e *SimpleError) GetSilent() bool {
 // Silence sets the error as silent
 func (e *SimpleError) Silence() *SimpleError {
 	e.silent = true
+	return e
+}
+
+// GetAuxiliary gets the auxiliary informational data attached to this error
+func (e *SimpleError) GetAuxiliary() map[string]interface{} {
+	return e.auxiliary
+}
+
+// Aux attaches auxiliary informational data to the error as key value pairs.
+// All keys must be of type `string` and have a value. Keys without values are ignored.
+func (e *SimpleError) Aux(kv ...interface{}) *SimpleError {
+	if e.auxiliary == nil {
+		e.auxiliary = map[string]interface{}{}
+	}
+	var key interface{}
+	for _, item := range kv {
+		if key == nil {
+			key = item
+			continue
+		}
+		keyStr, ok := key.(string)
+		if ok {
+			e.auxiliary[keyStr] = item
+		}
+		key = nil
+	}
+	return e
+}
+
+// AuxMap attaches auxiliary informational data to the error from a map[string]interface{}.
+func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
+	if e.auxiliary == nil {
+		e.auxiliary = map[string]interface{}{}
+	}
+	for k, v := range aux {
+		e.auxiliary[k] = v
+	}
 	return e
 }
 
