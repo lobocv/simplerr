@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+type CustomError struct {
+	error
+}
+
 type TestSuite struct {
 	suite.Suite
 }
@@ -18,14 +22,14 @@ func TestErrors(t *testing.T) {
 }
 
 func (s *TestSuite) TestErrorWrapping() {
-	original := fmt.Errorf("test")
+	original := &CustomError{error: fmt.Errorf("test")}
 	notfound := Wrap(original, "wrapped in not found").Code(CodeNotFound)
-	serviceErr := Wrap(notfound, "manually wrapped")
-	wrappedErr := fmt.Errorf("stdlib wrapper: %w", serviceErr)
-	opaqueErr := fmt.Errorf("opaque: %v", serviceErr)
+	wrappedErr := Wrap(notfound, "manually wrapped")
+	stdlibwrappedErr := fmt.Errorf("stdlib wrapper: %w", wrappedErr)
+	opaqueErr := fmt.Errorf("opaque: %v", wrappedErr)
 
 	// Print the error chain for debugging purpose
-	e := wrappedErr
+	e := stdlibwrappedErr
 	for ii := 1; ; ii++ {
 		fmt.Printf("layer %d: %v\n", ii, e)
 		e = errors.Unwrap(e)
@@ -34,19 +38,31 @@ func (s *TestSuite) TestErrorWrapping() {
 		}
 	}
 
-	// Test that we can detect if the error chain contains ServiceErrors
-	s.Equal(serviceErr, As(serviceErr))
-	s.Equal(serviceErr, As(wrappedErr))
+	// Test that we can detect if the error chain contains SimpleErrors
+	s.Equal(wrappedErr, As(wrappedErr))
+	s.Equal(wrappedErr, As(stdlibwrappedErr))
 	s.Equal(notfound, As(notfound))
 	// These errors do not contain a service error, results should be nil
 	s.Nil(As(opaqueErr))
 	s.Nil(As(original))
 
-	// Test that we can detect if the error chain contains NotFoundErrors
+	// Test using errors.Is works as expected
+	s.True(errors.Is(notfound, original))
+	s.True(errors.Is(wrappedErr, original))
+	s.True(errors.Is(wrappedErr, notfound))
+	s.True(errors.Is(stdlibwrappedErr, notfound))
+	s.True(errors.Is(stdlibwrappedErr, original))
+	s.False(errors.Is(wrappedErr, fmt.Errorf("something not matching")))
+
+	// Test that errors.As works as expected
+	ce := &CustomError{}
+	s.True(errors.As(wrappedErr, &ce))
+
+	// Test that we can detect if the error chain contains CodeNotFound
 	s.False(HasErrorCode(original, CodeNotFound))
 	s.True(HasErrorCode(notfound, CodeNotFound))
-	s.True(HasErrorCode(serviceErr, CodeNotFound))
 	s.True(HasErrorCode(wrappedErr, CodeNotFound))
+	s.True(HasErrorCode(stdlibwrappedErr, CodeNotFound))
 
 }
 
