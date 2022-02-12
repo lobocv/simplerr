@@ -1,15 +1,16 @@
 package simplerr
 
 import (
-	"errors"
 	"fmt"
 )
 
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
-	// err is the underlying error
-	err error
+	// parent is the error being wrapped
+	parent error
+	// msg is the error message
+	msg string
 	// code is the error code of the error defined in the registry
 	code Code
 	// silent is a flag that signals that this error should be recorded or logged silently
@@ -24,18 +25,17 @@ type SimpleError struct {
 	auxiliary map[string]interface{}
 }
 
-func New(err error) *SimpleError {
-	return &SimpleError{err: err, code: CodeUnknown}
-}
-
-// Newf creates a new SimpleError from a formatted string
-func Newf(_fmt string, args ...interface{}) *SimpleError {
-	return New(fmt.Errorf(_fmt, args...))
+// New creates a new SimpleError from a formatted string
+func New(_fmt string, args ...interface{}) *SimpleError {
+	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown}
 }
 
 // Error satisfies the `error` interface
 func (e *SimpleError) Error() string {
-	return e.err.Error()
+	if e.parent != nil {
+		return fmt.Sprintf("%s: %s", e.msg, e.parent.Error())
+	}
+	return e.msg
 }
 
 // GetCode returns the error code as defined in the registry
@@ -122,5 +122,5 @@ func (e *SimpleError) Description() string {
 
 // Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error
 func (e *SimpleError) Unwrap() error {
-	return errors.Unwrap(e.err)
+	return e.parent
 }

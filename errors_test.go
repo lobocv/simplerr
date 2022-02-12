@@ -23,10 +23,11 @@ func TestErrors(t *testing.T) {
 
 func (s *TestSuite) TestErrorWrapping() {
 	original := &CustomError{error: fmt.Errorf("test")}
-	notfound := Wrap(original, "wrapped in not found").Code(CodeNotFound)
-	wrappedErr := Wrap(notfound, "manually wrapped")
+	notfound := Wrapf(original, "wrapped in not found").Code(CodeNotFound)
+	wrappedErr := Wrapf(notfound, "manually wrapped")
 	stdlibwrappedErr := fmt.Errorf("stdlib wrapper: %w", wrappedErr)
-	opaqueErr := fmt.Errorf("opaque: %v", wrappedErr)
+	opaqueErr := New("opaque: %v", wrappedErr)
+	stdlibOpaqueErr := fmt.Errorf("opaque: %v", wrappedErr)
 
 	// Print the error chain for debugging purpose
 	e := stdlibwrappedErr
@@ -43,7 +44,7 @@ func (s *TestSuite) TestErrorWrapping() {
 	s.Equal(wrappedErr, As(stdlibwrappedErr))
 	s.Equal(notfound, As(notfound))
 	// These errors do not contain a service error, results should be nil
-	s.Nil(As(opaqueErr))
+	s.Nil(As(stdlibOpaqueErr))
 	s.Nil(As(original))
 
 	// Test using errors.Is works as expected
@@ -57,6 +58,7 @@ func (s *TestSuite) TestErrorWrapping() {
 	// Test that errors.As works as expected
 	ce := &CustomError{}
 	s.True(errors.As(wrappedErr, &ce))
+	s.False(errors.As(opaqueErr, &ce))
 
 	// Test that we can detect if the error chain contains CodeNotFound
 	s.False(HasErrorCode(original, CodeNotFound))
@@ -76,14 +78,14 @@ func (s *TestSuite) TestBenign() {
 	})
 
 	s.Run("wrapped errors are not set as benign by default", func() {
-		serr := Wrap(original, "wrapped")
+		serr := Wrapf(original, "wrapped")
 		gotReason, isBenign := serr.GetBenignReason()
 		s.Empty(gotReason)
 		s.False(isBenign)
 	})
 
 	s.Run("using BenignReason to set benign", func() {
-		serr := Wrap(original, "wrapped")
+		serr := Wrapf(original, "wrapped")
 		_ = serr.BenignReason("good reason")
 		gotReason, isBenign := serr.GetBenignReason()
 		s.Equal(gotReason, "good reason")
@@ -94,7 +96,7 @@ func (s *TestSuite) TestBenign() {
 	})
 
 	s.Run("using Benign to set benign", func() {
-		serr := Wrap(original, "wrapped")
+		serr := Wrapf(original, "wrapped")
 		_ = serr.Benign()
 		gotReason, isBenign := serr.GetBenignReason()
 		s.Empty(gotReason)
@@ -105,8 +107,8 @@ func (s *TestSuite) TestBenign() {
 	})
 
 	s.Run("check wrapping DOES NOT hide the benign", func() {
-		serr := Wrap(original, "wrapped").Benign()
-		wrapped := Wrap(serr, "wrapped")
+		serr := Wrapf(original, "wrapped").Benign()
+		wrapped := Wrapf(serr, "wrapped")
 		gotReason, isBenign := IsBenign(wrapped)
 		s.Empty(gotReason, "")
 		s.True(isBenign)
@@ -117,7 +119,7 @@ func (s *TestSuite) TestBenign() {
 	})
 
 	s.Run("check opaquing DOES hide the benign", func() {
-		serr := Wrap(original, "wrapped").Benign()
+		serr := Wrapf(original, "wrapped").Benign()
 		opaque := fmt.Errorf("stdlib wrap %s", serr)
 		gotReason, isBenign := IsBenign(opaque)
 		s.Empty(gotReason, "")
@@ -134,27 +136,27 @@ func (s *TestSuite) TestSilent() {
 	})
 
 	s.Run("wrapped errors are not set as silent by default", func() {
-		serr := Wrap(original, "wrapped")
+		serr := Wrapf(original, "wrapped")
 		s.False(serr.GetSilent())
 		s.False(IsSilent(serr))
 	})
 
 	s.Run("using Silence to set silent", func() {
-		serr := Wrap(original, "wrapped").Silence()
+		serr := Wrapf(original, "wrapped").Silence()
 		s.True(serr.GetSilent())
 		s.True(IsSilent(serr))
 	})
 
 	s.Run("check wrapping DOES NOT hide the silence", func() {
-		serr := Wrap(original, "wrapped").Silence()
-		wrapped := Wrap(serr, "wrapped")
+		serr := Wrapf(original, "wrapped").Silence()
+		wrapped := Wrapf(serr, "wrapped")
 		s.True(IsSilent(wrapped))
 		wrappedstdlib := fmt.Errorf("stdlib wrap %w", wrapped)
 		s.True(IsSilent(wrappedstdlib))
 	})
 
 	s.Run("check opaquing DOES hide the benign", func() {
-		serr := Wrap(original, "wrapped").Benign()
+		serr := Wrapf(original, "wrapped").Benign()
 		opaque := fmt.Errorf("stdlib wrap %s", serr)
 		s.False(IsSilent(opaque))
 	})
@@ -162,7 +164,7 @@ func (s *TestSuite) TestSilent() {
 
 // Test that any error can be convert to an HSError, and if it is already an HSError, it gets casted instead
 func (s *TestSuite) TestConvert() {
-	serr := Newf("original").Silence()
+	serr := New("original").Silence()
 
 	s.Run("SimpleErrors are not converted, just returned", func() {
 		got := Convert(serr)
@@ -172,19 +174,19 @@ func (s *TestSuite) TestConvert() {
 	s.Run("convert non-simple error to simple error (no conversions)", func() {
 		stdErr := fmt.Errorf("something")
 		got := Convert(stdErr)
-		s.Equal(got, &SimpleError{err: stdErr})
+		s.Equal(got, &SimpleError{parent: stdErr})
 	})
 
 	s.Run("convert non-simple error to simple error (with conversions)", func() {
 		err := context.DeadlineExceeded
 		got := Convert(err)
-		s.Equal(got, New(err).Code(CodeDeadlineExceeded))
+		s.Equal(got, Wrap(err).Code(CodeDeadlineExceeded))
 	})
 
 }
 
 func (s *TestSuite) TestAuxiliaryFields() {
-	serr := Newf("something").Aux("one", 1, "two", 2.0, "three", "THREE")
+	serr := New("something").Aux("one", 1, "two", 2.0, "three", "THREE")
 	expected := map[string]interface{}{
 		"one":   1,
 		"two":   2.0,
@@ -205,7 +207,7 @@ func (s *TestSuite) TestAuxiliaryFields() {
 }
 
 func (s *TestSuite) TestErrorCodeDescriptions() {
-	serr := Newf("something")
+	serr := New("something")
 	s.Equal("unknown", serr.Description())
 	_ = serr.Code(CodeNotSupported)
 	s.Equal("not supported", serr.Description())
@@ -220,7 +222,7 @@ func (s *TestSuite) TestCustomRegistry() {
 	SetRegistry(r)
 	defer SetRegistry(defaultRegistry)
 
-	serr := Newf("something").Code(CodeNotFound)
+	serr := New("something").Code(CodeNotFound)
 	s.Equal("", serr.Description(), "custom registry doesnt have NotFound code defined")
 
 	serr = serr.Code(CodeCustom)

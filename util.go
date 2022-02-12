@@ -5,10 +5,15 @@ import (
 	"fmt"
 )
 
-// Wrap returns a new SimpleError by wrapping an error with a formatted message string
-func Wrap(err error, msg string, a ...interface{}) *SimpleError {
+// Wrap wraps the error in a SimpleError
+func Wrap(err error) *SimpleError {
+	return &SimpleError{parent: err}
+}
+
+// Wrapf returns a new SimpleError by wrapping an error with a formatted message string
+func Wrapf(err error, msg string, a ...interface{}) *SimpleError {
 	msg = fmt.Sprintf(msg, a...)
-	return &SimpleError{err: fmt.Errorf("%s: %w", msg, err)}
+	return &SimpleError{parent: err, msg: msg}
 }
 
 // As attempts to find a SimpleError in the chain of errors, similar to errors.As()
@@ -26,7 +31,7 @@ func HasErrorCode(err error, code Code) bool {
 		if e.code == code {
 			return true
 		}
-		return HasErrorCode(e.err, code)
+		return HasErrorCode(e.parent, code)
 	}
 	return false
 }
@@ -70,7 +75,5 @@ func Convert(err error) *SimpleError {
 	}
 
 	// Do a minimal conversion to SimpleError{}, assuming nothing about the error
-	return &SimpleError{
-		err: err,
-	}
+	return Wrap(err)
 }
