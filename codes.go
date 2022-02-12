@@ -33,6 +33,8 @@ const (
 	CodeCanceled
 	// CodeResourceExhausted indicates that some limited resource (eg rate limit or disk space) has been reached
 	CodeResourceExhausted
+	// CodeUnavailable indicates that some server itself is unavailable for processing requests.
+	CodeUnavailable
 )
 
 // NumberOfReservedCodes is the code number, under which, are reserved for use by this library.
@@ -53,4 +55,5 @@ var defaultErrorCodes = map[Code]string{
 	CodeDeadlineExceeded:   "deadline exceeded",
 	CodeCanceled:           "canceled",
 	CodeResourceExhausted:  "resource exhausted",
+	CodeUnavailable:        "unavailable",
 }
