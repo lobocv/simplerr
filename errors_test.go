@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	"strings"
 	"testing"
 )
 
@@ -227,4 +228,50 @@ func (s *TestSuite) TestCustomRegistry() {
 
 	serr = serr.Code(CodeCustom)
 	s.Equal("custom", serr.Description())
+}
+
+func (s *TestSuite) TestStackTrace() {
+
+	checkCall := func(c Call, funcName string) {
+		s.True(strings.HasSuffix(c.Func, funcName))
+	}
+
+	e := First()
+	stack := e.StackTrace()
+	checkCall(stack[0], "First")
+
+	e = e.Unwrap().(*SimpleError)
+	stack = e.StackTrace()
+	checkCall(stack[0], "Second")
+	checkCall(stack[1], "First")
+
+	e = e.Unwrap().(*SimpleError)
+	stack = e.StackTrace()
+	checkCall(stack[0], "Third")
+	checkCall(stack[1], "Second")
+	checkCall(stack[2], "First")
+
+	e = e.Unwrap().(*SimpleError)
+	stack = e.StackTrace()
+	checkCall(stack[0], "Fourth")
+	checkCall(stack[1], "Third")
+	checkCall(stack[2], "Second")
+	checkCall(stack[3], "First")
+}
+
+func Fourth() *SimpleError {
+	return New("something").WithStackTrace()
+}
+
+func Third() *SimpleError {
+	e := Fourth()
+	return Wrapf(e, "third wrapper").WithStackTrace()
+}
+func Second() *SimpleError {
+	e := Third()
+	return Wrapf(e, "second wrapper").WithStackTrace()
+}
+func First() *SimpleError {
+	e := Second()
+	return Wrapf(e, "first wrapper").WithStackTrace()
 }

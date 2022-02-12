@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+const (
+	// maxStackFrames are the maximum number of stack frames returned with the error when using WithStackTrace
+	maxStackFrames = 16
+)
+
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
@@ -23,6 +28,8 @@ type SimpleError struct {
 	benignReason string
 	// auxiliary are auxiliary informational fields that can be attached to the error
 	auxiliary map[string]interface{}
+	// stackTrace is the call stack trace for the error
+	stackTrace []Call
 }
 
 // New creates a new SimpleError from a formatted string
@@ -118,6 +125,15 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 // Description returns the description of the error code
 func (e *SimpleError) Description() string {
 	return registry.CodeDescription(e.code)
+}
+
+func (e *SimpleError) StackTrace() []Call {
+	return e.stackTrace
+}
+
+func (e *SimpleError) WithStackTrace() *SimpleError {
+	e.stackTrace = stackTrace(3)
+	return e
 }
 
 // Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error
