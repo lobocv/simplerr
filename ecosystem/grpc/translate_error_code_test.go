@@ -1,4 +1,4 @@
-package interceptors
+package simplegrpc
 
 import (
 	"context"
@@ -18,12 +18,17 @@ func TestTranslateErrorCode(t *testing.T) {
 	}{
 		{fmt.Errorf("something"), codes.Unknown},
 		{simplerr.New("something").Code(simplerr.CodePermissionDenied), codes.PermissionDenied},
+		{simplerr.New("something").Code(simplerr.CodeMalformedRequest), codes.InvalidArgument},
 		{fmt.Errorf("wrapped: %w", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), codes.Unauthenticated},
 		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), codes.Unknown},
 		{nil, codes.OK},
 	}
 
-	interceptor := TranslateErrorCode(DefaultMapping())
+	// Alter the default mapping
+	m := DefaultMapping()
+	m[simplerr.CodeMalformedRequest] = codes.InvalidArgument
+
+	interceptor := TranslateErrorCode(m)
 	for _, tc := range testCases {
 		_, gotErr := interceptor(context.Background(), nil, nil, func(ctx context.Context, req interface{}) (interface{}, error) {
 			return 1, tc.err

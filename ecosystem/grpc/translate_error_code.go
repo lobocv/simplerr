@@ -1,4 +1,4 @@
-package interceptors
+package simplegrpc
 
 import (
 	"context"
@@ -9,24 +9,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var defaultMapping = map[simplerr.Code]codes.Code{
-	simplerr.CodeAlreadyExists:     codes.AlreadyExists,
-	simplerr.CodeNotFound:          codes.NotFound,
-	simplerr.CodeDeadlineExceeded:  codes.DeadlineExceeded,
-	simplerr.CodeCanceled:          codes.Canceled,
-	simplerr.CodeUnauthenticated:   codes.Unauthenticated,
-	simplerr.CodePermissionDenied:  codes.PermissionDenied,
-	simplerr.CodeNotImplemented:    codes.Unimplemented,
-	simplerr.CodeInvalidArgument:   codes.InvalidArgument,
-	simplerr.CodeResourceExhausted: codes.ResourceExhausted,
-}
-
 // DefaultMapping returns the default mapping of SimpleError codes to gRPC error codes
 func DefaultMapping() map[simplerr.Code]codes.Code {
-	m := map[simplerr.Code]codes.Code{}
-	for k, v := range defaultMapping {
-		m[k] = v
+	m := map[simplerr.Code]codes.Code{
+		simplerr.CodeAlreadyExists:     codes.AlreadyExists,
+		simplerr.CodeNotFound:          codes.NotFound,
+		simplerr.CodeDeadlineExceeded:  codes.DeadlineExceeded,
+		simplerr.CodeCanceled:          codes.Canceled,
+		simplerr.CodeUnauthenticated:   codes.Unauthenticated,
+		simplerr.CodePermissionDenied:  codes.PermissionDenied,
+		simplerr.CodeNotImplemented:    codes.Unimplemented,
+		simplerr.CodeInvalidArgument:   codes.InvalidArgument,
+		simplerr.CodeResourceExhausted: codes.ResourceExhausted,
 	}
+
 	return m
 }
 
