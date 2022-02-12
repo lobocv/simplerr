@@ -11,6 +11,8 @@ const (
 	CodeNotFound
 	// CodeInvalidArgument indicates that the caller specified an invalid argument.
 	CodeInvalidArgument
+	// CodeMalformedRequest indicates the syntax of the request cannot be interpreted (eg JSON decoding error)
+	CodeMalformedRequest
 	// CodeUnauthenticated indicates the request does not have valid authentication credentials for the operation.
 	CodeUnauthenticated
 	// CodePermissionDenied indicates that the identity of the user is confirmed but they do not have permissions
@@ -41,6 +43,7 @@ var defaultErrorCodes = map[Code]string{
 	CodeAlreadyExists:      "already exists",
 	CodeNotFound:           "not found",
 	CodeInvalidArgument:    "invalid argument",
+	CodeMalformedRequest:   "malformed request",
 	CodeUnauthenticated:    "unauthenticated",
 	CodePermissionDenied:   "permission denied",
 	CodeConstraintViolated: "constraint violated",
