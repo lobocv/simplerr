@@ -29,7 +29,7 @@ func TestTranslateErrorCode(t *testing.T) {
 
 	for _, tc := range testCases {
 		r := http.Response{}
-		SetStatus(tc.err, &r)
+		SetStatus(&r, tc.err)
 
 		require.Equal(t, tc.expected, r.StatusCode)
 	}

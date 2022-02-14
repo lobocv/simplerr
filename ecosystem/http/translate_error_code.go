@@ -34,7 +34,7 @@ func init() {
 
 // SetStatus sets the http.Response status from the error code in the provided error, if it is a SimpleError
 // If error is nil or not a SimpleError, the status will not be set.
-func SetStatus(err error, r *http.Response) {
+func SetStatus(r *http.Response, err error) {
 	if err == nil {
 		return
 	}
