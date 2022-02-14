@@ -9,17 +9,6 @@ const (
 	maxStackFrames = 16
 )
 
-// Formatter is the error string formatting function.
-var Formatter = DefaultFormatter
-
-// DefaultFormatter is the default error string formatting.
-func DefaultFormatter(e *SimpleError) string {
-	if parent := e.Unwrap(); parent != nil {
-		return fmt.Sprintf("%s: %s", e.GetMessage(), parent.Error())
-	}
-	return e.msg
-}
-
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
@@ -29,10 +18,10 @@ type SimpleError struct {
 	msg string
 	// code is the error code of the error defined in the registry
 	code Code
-	// silent is a flag that signals that this error should be recorded or logged silently
+	// silent is a flag that signals that this error should be recorded or logged silently on the server side
 	// eg. This error should not be logged at all
 	silent bool
-	// benign is a flag that signals that, from the application's perspective, this error is a benign error.
+	// benign is a flag that signals that, from the server's perspective, this error is a benign error.
 	// eg. This error can be logged at INFO level and then discarded.
 	benign bool
 	// benignReason is the reason this error was marked as "benign"
@@ -83,11 +72,13 @@ func (e *SimpleError) BenignReason(reason string) *SimpleError {
 }
 
 // GetBenignReason returns the benign reason and whether the error was marked as benign
+// ie. This error can be logged at INFO level and then discarded.
 func (e *SimpleError) GetBenignReason() (string, bool) {
 	return e.benignReason, e.benign
 }
 
-// GetSilent returns if the error is silent
+// GetSilent returns a flag that signals that this error should be recorded or logged silently on the server side
+// ie. This error should not be logged at all
 func (e *SimpleError) GetSilent() bool {
 	return e.silent
 }
