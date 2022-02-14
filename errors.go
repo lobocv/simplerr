@@ -45,7 +45,7 @@ type SimpleError struct {
 
 // New creates a new SimpleError from a formatted string
 func New(_fmt string, args ...interface{}) *SimpleError {
-	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown}
+	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown, stackTrace: stackTrace(3)}
 }
 
 // Error satisfies the `error` interface
@@ -142,11 +142,6 @@ func (e *SimpleError) Description() string {
 
 func (e *SimpleError) StackTrace() []Call {
 	return e.stackTrace
-}
-
-func (e *SimpleError) WithStackTrace() *SimpleError {
-	e.stackTrace = stackTrace(3)
-	return e
 }
 
 // Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error

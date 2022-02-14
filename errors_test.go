@@ -175,13 +175,13 @@ func (s *TestSuite) TestConvert() {
 	s.Run("convert non-simple error to simple error (no conversions)", func() {
 		stdErr := fmt.Errorf("something")
 		got := Convert(stdErr)
-		s.Equal(got, &SimpleError{parent: stdErr})
+		s.Equal(got.parent, stdErr)
 	})
 
 	s.Run("convert non-simple error to simple error (with conversions)", func() {
 		err := context.DeadlineExceeded
 		got := Convert(err)
-		s.Equal(got, Wrap(err).Code(CodeDeadlineExceeded))
+		s.Equal(got.GetCode(), CodeDeadlineExceeded)
 	})
 
 }
@@ -234,6 +234,10 @@ func (s *TestSuite) TestErrorFormatting() {
 	original := fmt.Errorf("original")
 	serr1 := Wrapf(original, "wrapper %d", 1)
 	serr2 := Wrapf(serr1, "wrapper %d", 2)
+
+	s.Equal(serr1.GetMessage(), "wrapper 1")
+	s.Equal(serr2.GetMessage(), "wrapper 2")
+
 	s.Equal("wrapper 1: original", serr1.Error())
 	s.Equal("wrapper 2: wrapper 1: original", serr2.Error())
 
@@ -276,18 +280,18 @@ func (s *TestSuite) TestStackTrace() {
 }
 
 func Fourth() *SimpleError {
-	return New("something").WithStackTrace()
+	return New("something")
 }
 
 func Third() *SimpleError {
 	e := Fourth()
-	return Wrapf(e, "third wrapper").WithStackTrace()
+	return Wrapf(e, "third wrapper")
 }
 func Second() *SimpleError {
 	e := Third()
-	return Wrapf(e, "second wrapper").WithStackTrace()
+	return Wrapf(e, "second wrapper")
 }
 func First() *SimpleError {
 	e := Second()
-	return Wrapf(e, "first wrapper").WithStackTrace()
+	return Wrapf(e, "first wrapper")
 }
