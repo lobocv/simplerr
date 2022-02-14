@@ -2,8 +2,6 @@ package simplerr
 
 import "fmt"
 
-type Code int
-
 var (
 	registry *Registry
 )
@@ -67,6 +65,7 @@ func (r *Registry) ErrorCodes() map[Code]string {
 	return codes
 }
 
+// CodeDescription returns the description of the error code
 func (r *Registry) CodeDescription(c Code) string {
 	return r.codeDescriptions[c]
 }
