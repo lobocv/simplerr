@@ -40,14 +40,13 @@ func NewRegistry() *Registry {
 // RegisterErrorCode registers custom error codes in the registry. This call may panic if a reserved error code is used.
 // This method should be called early on application startup.
 func (r *Registry) RegisterErrorCode(code Code, description string) {
-	if code < NumberOfReservedCodes {
-		panic(fmt.Sprintf("SimpleError codes 0 to %d are reserved.", NumberOfReservedCodes-1))
-	}
-
 	if _, exists := defaultErrorCodes[code]; exists {
 		panic("error code %s:%d already registered")
 	}
 
+	if code < NumberOfReservedCodes {
+		panic(fmt.Sprintf("SimpleError codes 0 to %d are reserved.", NumberOfReservedCodes-1))
+	}
 	r.codeDescriptions[code] = description
 }
 

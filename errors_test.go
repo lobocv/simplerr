@@ -17,6 +17,10 @@ type TestSuite struct {
 	suite.Suite
 }
 
+func (s *TestSuite) checkCall(c Call, funcName string) {
+	s.True(strings.HasSuffix(c.Func, funcName))
+}
+
 func TestErrors(t *testing.T) {
 	s := new(TestSuite)
 	suite.Run(t, s)
@@ -179,9 +183,20 @@ func (s *TestSuite) TestConvert() {
 	})
 
 	s.Run("convert non-simple error to simple error (with conversions)", func() {
-		err := context.DeadlineExceeded
-		got := Convert(err)
-		s.Equal(got.GetCode(), CodeDeadlineExceeded)
+
+		testCases := []struct {
+			err          error
+			expectedCode Code
+		}{
+			{err: context.DeadlineExceeded, expectedCode: CodeDeadlineExceeded},
+			{err: context.Canceled, expectedCode: CodeCanceled},
+		}
+
+		for _, tc := range testCases {
+			got := Convert(tc.err)
+			s.Equal(got.GetCode(), tc.expectedCode)
+		}
+
 	})
 
 }
@@ -201,8 +216,11 @@ func (s *TestSuite) TestAuxiliaryFields() {
 	s.Equal(expected, serr.GetAuxiliary())
 
 	// Add more fields but this time with a map
-	serr = serr.AuxMap(map[string]interface{}{"five": 5})
-	expected["five"] = 5
+	serr = New("something")
+	expected = map[string]interface{}{"one": 1, "two": 2}
+	serr = serr.AuxMap(expected)
+	serr = serr.AuxMap(expected)
+
 	s.Equal(expected, serr.GetAuxiliary())
 
 }
@@ -218,16 +236,41 @@ func (s *TestSuite) TestCustomRegistry() {
 	r := NewRegistry()
 	const CodeCustom = 100
 	r.RegisterErrorCode(CodeCustom, "custom")
+	r.RegisterErrorConversions(func(err error) *SimpleError {
+		if err.Error() == "convert this" {
+			return Wrap(err).Code(CodeNotFound)
+		}
+		return nil
+	})
 	// Because the registry is a global, to prevent mucking with other tests, set it back afterwards
 	defaultRegistry := registry
 	SetRegistry(r)
 	defer SetRegistry(defaultRegistry)
 
-	serr := New("something").Code(CodeNotFound)
-	s.Equal("", serr.Description(), "custom registry doesnt have NotFound code defined")
+	s.Run("use custom convert ", func() {
+		serr := New("convert this")
+		s.Equal("", serr.Description(), "custom registry doesnt have NotFound code defined")
+		serr = serr.Code(CodeCustom)
+		s.Equal("custom", serr.Description())
+	})
 
-	serr = serr.Code(CodeCustom)
-	s.Equal("custom", serr.Description())
+	s.Run("get error codes", func() {
+		codes := r.ErrorCodes()
+		s.Equal(map[Code]string{CodeCustom: "custom"}, codes)
+	})
+
+	s.Run("cannot register reserved code range ", func() {
+		s.Panics(func() {
+			r.RegisterErrorCode(NumberOfReservedCodes-1, "something else")
+		})
+	})
+
+	s.Run("cannot register reserved codes already in use ", func() {
+		s.Panics(func() {
+			r.RegisterErrorCode(CodeNotFound-1, "something else")
+		})
+	})
+
 }
 
 func (s *TestSuite) TestErrorFormatting() {
@@ -241,42 +284,52 @@ func (s *TestSuite) TestErrorFormatting() {
 	s.Equal("wrapper 1: original", serr1.Error())
 	s.Equal("wrapper 2: wrapper 1: original", serr2.Error())
 
+	serr3 := New("something")
+	s.Equal("something", serr3.Error())
+
 	// Change the error formatting style
 	Formatter = func(e *SimpleError) string {
+		if e.parent == nil {
+			return e.msg
+		}
 		return strings.Join([]string{e.msg, e.parent.Error()}, "\n")
 	}
 	s.Equal("wrapper 1\noriginal", serr1.Error())
 	s.Equal("wrapper 2\nwrapper 1\noriginal", serr2.Error())
-
+	Formatter = DefaultFormatter
 }
 
 func (s *TestSuite) TestStackTrace() {
 
-	checkCall := func(c Call, funcName string) {
-		s.True(strings.HasSuffix(c.Func, funcName))
-	}
-
 	e := First()
 	stack := e.StackTrace()
-	checkCall(stack[0], "First")
+	s.checkCall(stack[0], "First")
 
 	e = e.Unwrap().(*SimpleError)
 	stack = e.StackTrace()
-	checkCall(stack[0], "Second")
-	checkCall(stack[1], "First")
+	s.checkCall(stack[0], "Second")
+	s.checkCall(stack[1], "First")
 
 	e = e.Unwrap().(*SimpleError)
 	stack = e.StackTrace()
-	checkCall(stack[0], "Third")
-	checkCall(stack[1], "Second")
-	checkCall(stack[2], "First")
+	s.checkCall(stack[0], "Third")
+	s.checkCall(stack[1], "Second")
+	s.checkCall(stack[2], "First")
 
 	e = e.Unwrap().(*SimpleError)
 	stack = e.StackTrace()
-	checkCall(stack[0], "Fourth")
-	checkCall(stack[1], "Third")
-	checkCall(stack[2], "Second")
-	checkCall(stack[3], "First")
+	s.checkCall(stack[0], "Fourth")
+	s.checkCall(stack[1], "Third")
+	s.checkCall(stack[2], "Second")
+	s.checkCall(stack[3], "First")
+}
+
+// Test that stack trace is accurate when using Convert()
+func (s *TestSuite) TestStackTraceOnConvert() {
+	err := fmt.Errorf("something")
+	convErr := Convert(err)
+	stack := convErr.StackTrace()
+	s.checkCall(stack[0], "TestStackTraceOnConvert")
 }
 
 func Fourth() *SimpleError {

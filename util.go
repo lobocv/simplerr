@@ -75,5 +75,5 @@ func Convert(err error) *SimpleError {
 	}
 
 	// Do a minimal conversion to SimpleError{}, assuming nothing about the error
-	return Wrap(err)
+	return &SimpleError{parent: err, stackTrace: stackTrace(3)}
 }
