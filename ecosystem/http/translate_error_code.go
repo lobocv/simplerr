@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// HTTPStatus is the HTTP status code
 type HTTPStatus = int
 
 var mapping map[simplerr.Code]HTTPStatus

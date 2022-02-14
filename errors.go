@@ -131,6 +131,7 @@ func (e *SimpleError) Description() string {
 	return registry.CodeDescription(e.code)
 }
 
+// StackTrace returns the stack trace at the point at which the error was raised
 func (e *SimpleError) StackTrace() []Call {
 	return e.stackTrace
 }
