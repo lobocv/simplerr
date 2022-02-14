@@ -9,6 +9,17 @@ const (
 	maxStackFrames = 16
 )
 
+// Formatter is the error string formatting function.
+var Formatter = DefaultFormatter
+
+// DefaultFormatter is the default error string formatting.
+func DefaultFormatter(e *SimpleError) string {
+	if parent := e.Unwrap(); parent != nil {
+		return fmt.Sprintf("%s: %s", e.GetMessage(), parent.Error())
+	}
+	return e.msg
+}
+
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
@@ -39,9 +50,11 @@ func New(_fmt string, args ...interface{}) *SimpleError {
 
 // Error satisfies the `error` interface
 func (e *SimpleError) Error() string {
-	if e.parent != nil {
-		return fmt.Sprintf("%s: %s", e.msg, e.parent.Error())
-	}
+	return Formatter(e)
+}
+
+// GetMessage gets the error string for this error, exclusive of any wrapped errors.
+func (e *SimpleError) GetMessage() string {
 	return e.msg
 }
 

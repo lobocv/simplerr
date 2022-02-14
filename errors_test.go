@@ -230,6 +230,22 @@ func (s *TestSuite) TestCustomRegistry() {
 	s.Equal("custom", serr.Description())
 }
 
+func (s *TestSuite) TestErrorFormatting() {
+	original := fmt.Errorf("original")
+	serr1 := Wrapf(original, "wrapper %d", 1)
+	serr2 := Wrapf(serr1, "wrapper %d", 2)
+	s.Equal("wrapper 1: original", serr1.Error())
+	s.Equal("wrapper 2: wrapper 1: original", serr2.Error())
+
+	// Change the error formatting style
+	Formatter = func(e *SimpleError) string {
+		return strings.Join([]string{e.msg, e.parent.Error()}, "\n")
+	}
+	s.Equal("wrapper 1\noriginal", serr1.Error())
+	s.Equal("wrapper 2\nwrapper 1\noriginal", serr2.Error())
+
+}
+
 func (s *TestSuite) TestStackTrace() {
 
 	checkCall := func(c Call, funcName string) {
