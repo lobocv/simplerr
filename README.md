@@ -1,19 +1,20 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/lobocv/simplerr)](https://goreportcard.com/report/github.com/lobocv/simplerr)
 [<img src="https://img.shields.io/github/license/lobocv/simplerr">](https://img.shields.io/github/license/lobocv/simplerr)
 <a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-100%25-brightgreen.svg?longCache=true&style=flat)</a>
-
+[![Go Reference](https://pkg.go.dev/badge/github.com/lobocv/simplerr.svg)](https://pkg.go.dev/github.com/lobocv/simplerr)
 
 # Simplerr
 
-Simplerr provides a simpler and more powerful Go error handling experience by providing an alternative `error` 
-implementation, the `SimpleError`. Simplerr was designed to be convenient, un-opinionated and highly customizable (if needed).
-One of the main goals of Simplerr is to reduce boilerplate and make error handling and debugging easier.
+Simplerr provides a simple and more powerful Go error handling experience by providing an alternative `error` 
+implementation, the [SimpleError](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError). Simplerr was designed to
+be convenient and highly configurable. The main goals of Simplerr is to reduce boilerplate and make error handling
+and debugging easier.
 
 # Features
 
 The `SimpleError` allows you to easily:
 
-- Apply an error code to any error. Choose from a list of standard codes or register your own.
+- Apply an error code to any error. Choose from a list of standard codes or [register](https://pkg.go.dev/github.com/lobocv/simplerr#Registry) your own.
 - Register `func(err) *SimpleError` conversion functions to easily convert to `SimpleErrors` using `Convert()`.
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
 - Attach key-value pairs to errors to be used with structured loggers.
@@ -154,6 +155,21 @@ Similar to benign errors, an error can be marked as silent using the `Silent()` 
 log this error at all. This is useful in situations where a very high amount of benign errors are flooding the logs.
 To detect silent errors, use the `IsSilent()` function which looks for any silent errors in the chain of errors.
 
+### Changing Error Formatting
+
+The default formatting of the error string can be changed by modifying the `simplerr.Formatter` variable.
+For example, to use a new line to separate the message and the wrapped error you can do:
+
+```go
+simplerr.Formatter = func(e *simplerr.SimpleError) string {
+    parent := e.Unwrap()
+    if parent == nil {
+        return e.GetMessage()
+    }
+    return strings.Join([]string{e.GetMessage(), parent.Error()}, "\n")
+}
+```
+
 ## HTTP Status Codes
 
 HTTP status codes can be set automatically by using the [ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http)
@@ -208,3 +224,10 @@ func main() {
     interceptor := TranslateErrorCode(m)
 }
 ```
+
+# Contributing
+
+Contributions and pull requests to `simplerr` are welcome but must align with the goals of the package:
+- Keep it simple
+- Features should have resonable defaults but provide flexibility with optional configuration
+- Keep dependencies to a minimum

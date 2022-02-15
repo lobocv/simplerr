@@ -304,10 +304,11 @@ func (s *TestSuite) TestErrorFormatting() {
 
 	// Change the error formatting style
 	Formatter = func(e *SimpleError) string {
-		if e.parent == nil {
-			return e.msg
+		parent := e.Unwrap()
+		if parent == nil {
+			return e.GetMessage()
 		}
-		return strings.Join([]string{e.msg, e.parent.Error()}, "\n")
+		return strings.Join([]string{e.GetMessage(), parent.Error()}, "\n")
 	}
 	s.Equal("wrapper 1\noriginal", serr1.Error())
 	s.Equal("wrapper 2\nwrapper 1\noriginal", serr2.Error())
