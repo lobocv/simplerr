@@ -14,12 +14,13 @@ func TestTranslateErrorCode(t *testing.T) {
 		err      error
 		expected HTTPStatus
 	}{
-		{fmt.Errorf("something"), 0},
+		{fmt.Errorf("something"), http.StatusInternalServerError},
+		{simplerr.New("something").Code(simplerr.CodeUnknown), http.StatusInternalServerError},
 		{simplerr.New("something").Code(simplerr.CodePermissionDenied), http.StatusForbidden},
 		{simplerr.New("something").Code(simplerr.CodeCanceled), http.StatusRequestTimeout},
 		{simplerr.New("something").Code(simplerr.CodeConstraintViolated), 0},
 		{fmt.Errorf("wrapped: %w", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusUnauthorized},
-		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), 0},
+		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusInternalServerError},
 		{nil, 0},
 	}
 

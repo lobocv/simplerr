@@ -13,6 +13,7 @@ var mapping map[simplerr.Code]HTTPStatus
 // DefaultMapping returns the default mapping of SimpleError codes to HTTP status codes
 func DefaultMapping() map[simplerr.Code]HTTPStatus {
 	var m = map[simplerr.Code]HTTPStatus{
+		simplerr.CodeUnknown:           http.StatusInternalServerError,
 		simplerr.CodeNotFound:          http.StatusNotFound,
 		simplerr.CodeDeadlineExceeded:  http.StatusRequestTimeout,
 		simplerr.CodePermissionDenied:  http.StatusForbidden,
@@ -41,6 +42,7 @@ func SetStatus(r *http.Response, err error) {
 	}
 	e := simplerr.As(err)
 	if e == nil {
+		r.StatusCode = http.StatusInternalServerError
 		return
 	}
 	code, ok := mapping[e.GetCode()]
