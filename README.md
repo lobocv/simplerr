@@ -139,6 +139,12 @@ One of the objective to `simplerr` is to reduce the need to log the errors manua
 and instead, log errors in a procedural way in a middleware layer. While this is possible with standard library errors,
 there is a lack of control when dealing only with the simple `string`-backed error implementation.
 
+### Logging with Structured Loggers
+
+It is good practice to use structured logging to improve observability. However, the standard library error does
+not allow for attaching and retrieving key-value pairs on errors. With `simplerr` you can retrieve a superset of all attached
+key-value data on errors in the chain using `ExtractAuxiliary()` or on the individual error with `GetAuxiliary()`
+
 ### Benign Errors
 
 Benign errors are errors that are mainly used to indicate a certain condition, rather than something going wrong in the 

@@ -224,6 +224,16 @@ func (s *TestSuite) TestAuxiliaryFields() {
 
 	s.Equal(expected, serr.GetAuxiliary())
 
+	s.Run("extract all aux from wrapped errors", func() {
+		wrapped := Wrap(serr).Aux("name", "Calvin")
+		expected["name"] = "Calvin"
+		s.Equal(expected, ExtractAuxiliary(wrapped))
+	})
+
+	s.Run("extract all aux from nil error", func() {
+		s.Nil(ExtractAuxiliary(nil))
+	})
+
 }
 
 func (s *TestSuite) TestErrorCodeDescriptions() {
