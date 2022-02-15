@@ -42,6 +42,12 @@ func (e *SimpleError) Error() string {
 	return Formatter(e)
 }
 
+// Message sets the message text on the error
+func (e *SimpleError) Message(msg string, args ...interface{}) *SimpleError {
+	e.msg = fmt.Sprintf(msg, args...)
+	return e
+}
+
 // GetMessage gets the error string for this error, exclusive of any wrapped errors.
 func (e *SimpleError) GetMessage() string {
 	return e.msg
@@ -126,8 +132,8 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 	return e
 }
 
-// Description returns the description of the error code
-func (e *SimpleError) Description() string {
+// GetDescription returns the description of the error code
+func (e *SimpleError) GetDescription() string {
 	return registry.CodeDescription(e.code)
 }
 

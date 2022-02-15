@@ -2,6 +2,7 @@ package simplerr
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/suite"
@@ -227,9 +228,9 @@ func (s *TestSuite) TestAuxiliaryFields() {
 
 func (s *TestSuite) TestErrorCodeDescriptions() {
 	serr := New("something")
-	s.Equal("unknown", serr.Description())
+	s.Equal("unknown", serr.GetDescription())
 	_ = serr.Code(CodeNotSupported)
-	s.Equal("not supported", serr.Description())
+	s.Equal("not supported", serr.GetDescription())
 }
 
 func (s *TestSuite) TestCustomRegistry() {
@@ -249,9 +250,9 @@ func (s *TestSuite) TestCustomRegistry() {
 
 	s.Run("use custom convert ", func() {
 		serr := New("convert this")
-		s.Equal("", serr.Description(), "custom registry doesnt have NotFound code defined")
+		s.Equal("", serr.GetDescription(), "custom registry doesnt have NotFound code defined")
 		serr = serr.Code(CodeCustom)
-		s.Equal("custom", serr.Description())
+		s.Equal("custom", serr.GetDescription())
 	})
 
 	s.Run("get error codes", func() {
@@ -271,6 +272,20 @@ func (s *TestSuite) TestCustomRegistry() {
 		})
 	})
 
+}
+
+func (s *TestSuite) TestModifyDefaultRegistry() {
+	r := GetRegistry()
+	r.RegisterErrorConversions(func(err error) *SimpleError {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Wrap(err).Code(CodeNotFound)
+		}
+		return nil
+	})
+
+	serr := Convert(sql.ErrNoRows).Message("failed to get user with id %d", 123)
+	s.Equal(CodeNotFound, serr.GetCode())
+	s.Equal("failed to get user with id 123: sql: no rows in result set", serr.Error())
 }
 
 func (s *TestSuite) TestErrorFormatting() {

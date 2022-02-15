@@ -15,6 +15,11 @@ func init() {
 	registry.conversions = append(registry.conversions, defaultErrorConversions...)
 }
 
+// GetRegistry gets the currently set registry
+func GetRegistry() *Registry {
+	return registry
+}
+
 // SetRegistry sets the default error registry
 func SetRegistry(r *Registry) {
 	registry = r
