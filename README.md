@@ -1,5 +1,6 @@
 [![GoReportCard](https://goreportcard.com/badge/github.com/lobocv/simplerr)](https://goreportcard.com/badge/github.com/lobocv/simplerr)
-<a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-98%25-brightgreen.svg?longCache=true&style=flat)</a>
+[<img src="https://img.shields.io/github/license/lobocv/simplerr">](https://img.shields.io/github/license/lobocv/simplerr)
+<a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-100%25-brightgreen.svg?longCache=true&style=flat)</a>
 
 
 # Simplerr
@@ -13,7 +14,7 @@ One of the main goals of Simplerr is to reduce boilerplate and make error handli
 The `SimpleError` allows you to easily:
 
 - Apply an error code to any error. Choose from a list of standard codes or register your own.
-- Register `func(err) *SimpleError` conversion functions to more quickly convert to `SimpleErrors` using `Convert()`.
+- Register `func(err) *SimpleError` conversion functions to easily convert to `SimpleErrors` using `Convert()`.
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
 - Attach key-value pairs to errors to be used with structured loggers.
 - Capture stack traces at the point the error is raised.
@@ -22,9 +23,9 @@ The `SimpleError` allows you to easily:
 
 A complete list of standard error codes can be found [here](https://github.com/lobocv/simplerr/blob/master/codes.go).
 
-### Basic usage
+# Basic usage
 
-#### Creating errors
+## Creating errors
 Errors can be created with `New(format string, args... interface{})`, which works similar to `fmt.Errorf` but instead
 returns a `*SimplerError`. You can then chain mutations onto the error to add additional information.
 
@@ -42,18 +43,19 @@ key-value pair information to the error that we can extract later on when we dec
 Errors can also be wrapped with the `Wrap(err error)` and `Wrapf(err error, format string, args... []interface{})` functions:
 
 ```go
-userID := 123
-err := db.GetUser(123)
-if err != nil {
-    serr = simplerr.Wrapf(err, "failed to get user with id = %d", userID).Aux("user_id", userID)
-    if errors.Is(err, sql.ErrNoRows) {
-        serr.Code(CodeNotFound)   
+func GetUser(userID int) (*User, error) {
+    user, err := db.GetUser(userID)
+    if err != nil {
+        serr = simplerr.Wrapf(err, "failed to get user with id = %d", userID).Aux("user_id", userID)
+        if errors.Is(err, sql.ErrNoRows) {
+            serr.Code(CodeNotFound)   
+        }
+        return serr
     }
-    return serr
 }
 ```
 
-#### Automatic error conversion:
+## Automatic error conversion:
 
 The above example where we manually check for `sql.ErrNoRows` can be cleaned up further by globally registering an error 
 conversion function:
@@ -75,7 +77,7 @@ func main() {
 and using `Convert()`:
 ```go
 func GetUser(userID int) (*User, error) {
-    user, err := db.GetUser(123)
+    user, err := db.GetUser(userID)
     if err != nil {
         return nil, simplerr.Convert(err).
     		       Message("failed to get user with id = %d", userID).
@@ -88,7 +90,7 @@ Calling `Convert()` will run the error through all registered conversion functio
 use the first result that returns a non-nil value. In the above example, the error code
 will be set to `CodeNotFound`.
 
-### Detecting errors
+## Detecting errors
 
 `SimpleError` implements the `Unwrap` method so it can be used with the standard library
 `errors.Is()` and `errors.As()` functions. However, the ability to use error codes makes
@@ -117,19 +119,47 @@ The alternatives would be to use `errors.Is(err, sql.ErrNoRows)` directly and le
 detail of the persistence layer or to define a custom error that the persistence layer would need
 to return in place of `sql.ErrNoRows`. 
 
-### Handling and Logging SimpleErrors
+# Error Handling 
 
 `SimpleErrors` were designed to be handled. The [ecosystem](https://github.com/lobocv/simplerr/tree/master/ecosystem)
-package provides packages to assist with error handling for different applications. Designing your own handlers is as 
+package provides packages to assist with error handling for different applications. Designing your own handlers is as
 simple as detecting the `SimpleError` and reacting to it's attributes.
 
-#### HTTP Status Codes
+
+## Logging SimpleErrors
+
+One of the objective to `simplerr` is to reduce the need to log the errors manually at the sight in which they are raised,
+and instead, log errors in a procedural way in a middleware layer. While this is possible with standard library errors,
+there is a lack of control when dealing only with the simple `string`-backed error implementation.
+
+### Benign Errors
+
+Benign errors are errors that are mainly used to indicate a certain condition, rather than something going wrong in the 
+system. An example of a benign error would be an API that returns `sql.ErrNoRows` when requesting a specific
+resource. Depending on whether the resource is expected to exist or not, this may not actually be an error. 
+
+Some clients may be calling the API to just check the existence of the resource. Nonetheless, this "error" would flood 
+the logs at `ERROR` level and may disrupt error tracking tools such as [sentry](https://sentry.io/welcome/). 
+The server must still return the error so that it reaches the client, however on the server, it is not seen as genuine 
+error and does not need to be logged as such. With `simplerr`, it is possible to mark an error as `benign`, which allows logging middleware to detect and log
+the error at a less severe level such as `INFO`.
+
+Errors can be marked benign by either using the `Benign()` or `BenignReason()` mutators. The latter also attaches a 
+reason why the error was marked benign. To detect benign errors, use the `IsBenign()` function which looks for any
+benign errors in the chain of errors.
+
+### Silent Errors
+
+Similar to benign errors, an error can be marked as silent using the `Silent()` mutator to indicate to logging middleware to not
+log this error at all. This is useful in situations where a very high amount of benign errors are flooding the logs.
+To detect silent errors, use the `IsSilent()` function which looks for any silent errors in the chain of errors.
+
+## HTTP Status Codes
 
 HTTP status codes can be set automatically by using the [ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http)
 package to translate `simplerr` error codes to HTTP status codes. 
 
 ```go
-
 func (s *Server) GetUser(resp http.ResponseWriter, req *http.Request) {
 	
     // extract userID from request...
@@ -158,6 +188,23 @@ func main() {
     simplehttp.SetMapping(m)
     // ...
 }
+```
 
+## GRPC Status Codes
 
+Since GRPC functions return an error, it is even convenient to integrate error code translation using an interceptor (middleware).
+The package [simplegrpc]([ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http) defines an interceptor
+that detects if the returned error is a `SimpleError` and then translates the error code into a GRPC status code. A mapping
+for several codes is provided using the `DefaultMapping()` function. This can be changed by providing an alternative mapping
+when creating the interceptor:
+
+```go
+func main() {
+    // Get the default mapping provided by simplerr
+    m := DefaultMapping()
+    // Add another mapping from simplerr code to GRPC code
+    m[simplerr.CodeMalformedRequest] = codes.InvalidArgument
+    // Create the interceptor by providing the mapping
+    interceptor := TranslateErrorCode(m)
+}
 ```
