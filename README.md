@@ -193,7 +193,7 @@ func main() {
 ## GRPC Status Codes
 
 Since GRPC functions return an error, it is even convenient to integrate error code translation using an interceptor (middleware).
-The package [simplegrpc]([ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http) defines an interceptor
+The package [ecosystem/grpc](https://github.com/lobocv/simplerr/tree/master/ecosystem/http) defines an interceptor
 that detects if the returned error is a `SimpleError` and then translates the error code into a GRPC status code. A mapping
 for several codes is provided using the `DefaultMapping()` function. This can be changed by providing an alternative mapping
 when creating the interceptor:
