@@ -126,6 +126,12 @@ to return in place of `sql.ErrNoRows`.
 package provides packages to assist with error handling for different applications. Designing your own handlers is as
 simple as detecting the `SimpleError` and reacting to it's attributes.
 
+## Detecting Errors
+
+To detect a specific error code, you can use `HasErrorCode(err error, c Code)`. If you want to look for several different
+error codes, use `HasErrorCodes(err error, codes... Code)`, which returns the first of the provided error codes that is 
+detected, and a boolean for whether anything was detected.
+
 
 ## Logging SimpleErrors
 

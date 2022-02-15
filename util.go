@@ -36,6 +36,22 @@ func HasErrorCode(err error, code Code) bool {
 	return false
 }
 
+// HasErrorCodes looks for the specified error codes in the chain of errors.
+// It returns the first code in the list that is found in the chain and a boolean for whether
+// anything was found.
+func HasErrorCodes(err error, codes ...Code) (Code, bool) {
+	if e := As(err); e != nil {
+		for _, c := range codes {
+			if c == e.code {
+				return c, true
+			}
+		}
+
+		return HasErrorCodes(e.parent, codes...)
+	}
+	return 0, false
+}
+
 // IsBenign checks the error or any error in the chain, is benign
 func IsBenign(err error) (reason string, benign bool) {
 	e := As(err)

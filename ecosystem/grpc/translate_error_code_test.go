@@ -22,6 +22,7 @@ func TestTranslateErrorCode(t *testing.T) {
 		{simplerr.New("something").Code(simplerr.CodeMissingParameter), codes.Unknown},
 		{fmt.Errorf("wrapped: %w", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), codes.Unauthenticated},
 		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), codes.Unknown},
+		{simplerr.Wrap(simplerr.New("something").Code(simplerr.CodePermissionDenied)), codes.PermissionDenied},
 		{nil, codes.OK},
 	}
 
