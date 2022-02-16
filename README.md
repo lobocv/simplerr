@@ -4,11 +4,13 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/lobocv/simplerr.svg)](https://pkg.go.dev/github.com/lobocv/simplerr)
 
 # Simplerr
+<p align="center"><img src="gopher.png" width="250"></p>
 
 Simplerr provides a simple and more powerful Go error handling experience by providing an alternative `error` 
 implementation, the [SimpleError](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError). Simplerr was designed to
 be convenient and highly configurable. The main goals of Simplerr is to reduce boilerplate and make error handling
 and debugging easier.
+
 
 # Features
 
