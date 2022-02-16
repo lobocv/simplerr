@@ -4,11 +4,6 @@ import (
 	"fmt"
 )
 
-const (
-	// maxStackFrames are the maximum number of stack frames returned with the error when using WithStackTrace
-	maxStackFrames = 16
-)
-
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
@@ -64,13 +59,18 @@ func (e *SimpleError) Code(code Code) *SimpleError {
 	return e
 }
 
-// Benign marks the error as "benign"
+// Benign marks the error as "benign". A benign error is an error depending on the context of the caller.
+// eg a NotFoundError is only an error if the caller is expecting the entity to exist.
+// These errors can usually be logged less severely (ie at INFO rather than ERROR level)
 func (e *SimpleError) Benign() *SimpleError {
 	e.benign = true
 	return e
 }
 
 // BenignReason marks the error as "benign" and attaches a reason it was marked benign.
+// A benign error is an error depending on the context of the caller.
+// eg a NotFoundError is only an error if the caller is expecting the entity to exist
+// These errors can usually be logged less severely (ie at INFO rather than ERROR level)
 func (e *SimpleError) BenignReason(reason string) *SimpleError {
 	e.benign = true
 	e.benignReason = reason

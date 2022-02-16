@@ -2,6 +2,11 @@ package simplerr
 
 import "runtime"
 
+const (
+	// maxStackFrames are the maximum number of stack frames returned with the error when using WithStackTrace
+	maxStackFrames = 16
+)
+
 // Call contains information for a specific call in the call stack
 type Call struct {
 	Line int
