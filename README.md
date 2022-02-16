@@ -20,6 +20,7 @@ The `SimpleError` allows you to easily:
 - Register `func(err) *SimpleError` conversion functions to easily convert to `SimpleErrors` using `Convert()`.
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
 - Attach key-value pairs to errors to be used with structured loggers.
+- Attach custom attributes similar to the `context` package.
 - Capture stack traces at the point the error is raised.
 - Mark errors as `silent` so they can be skipped by logging middleware.
 - Mark errors as `benign` so they can be logged less severely by logging middleware.
@@ -92,6 +93,35 @@ func GetUser(userID int) (*User, error) {
 Calling `Convert()` will run the error through all registered conversion functions and 
 use the first result that returns a non-nil value. In the above example, the error code
 will be set to `CodeNotFound`.
+
+## Attaching Custom Attributes to Errors
+
+Simplerr lets you define and detect your own custom attributes on errors. This works similarly to the `context` package.
+An attribute is attached to an error using the `Attr()` mutator and can be retrieved using the `GetAttribute()` function,
+which finds the first match of the attribute key in the error chain.
+
+It is highly recommended that a custom type be used as the key in order to prevent naming collisions of attributes. 
+The following example defines a `NotRetryable` attribute and attaches it on an error where a unique constraint is violated,
+this indicates that the error should be exempt by any retry mechanism. 
+
+
+```go
+
+// Define a custom type so we don't get naming collisions for value == 1
+type ErrorAttribute int
+
+// Define a specific key for the attribute
+const NotRetryable = ErrorAttribute(1)
+
+// Attach the `NotRetryable` attribute on the error
+serr := New("user with that email already exists").
+	Code(CodeConstraintViolated).
+	Attr(NotRetryable, true)
+
+// Get the value of the NotRetryable attribute
+isRetryable := GetAttribute(err, NotRetryable).(bool)
+// isRetryable == true
+```
 
 ## Detecting errors
 
