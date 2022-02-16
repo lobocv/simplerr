@@ -20,6 +20,7 @@ The `SimpleError` allows you to easily:
 - Register `func(err) *SimpleError` conversion functions to easily convert to `SimpleErrors` using `Convert()`.
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
 - Attach key-value pairs to errors to be used with structured loggers.
+- Attach custom attributes similar to the `context` package.
 - Capture stack traces at the point the error is raised.
 - Mark errors as `silent` so they can be skipped by logging middleware.
 - Mark errors as `benign` so they can be logged less severely by logging middleware.
@@ -37,7 +38,7 @@ userID := 123
 companyID := 456
 err := simplerr.New("user %d does not exist in company %d", userID, companyID).
 	Code(CodeNotFound).
-	Aux("user_id", userID, "company_id", companyID).
+	Aux("user_id", userID, "company_id", companyID)
 ```
 
 In the above example, a new error is created and set to error code `CodeNotFound`. We have also attached auxiliary
@@ -67,7 +68,7 @@ conversion function:
 
 func main() {
     // Register a conversion function for sql.ErrNoRows to be converted to CodeNotFound
-    r := GetRegistry()
+    r := simplerr.GetRegistry()
     r.RegisterErrorConversions(func(err error) simplerr.*SimpleError {
         if errors.Is(err, sql.ErrNoRows) {
             return simplerr.Wrap(err).Code(CodeNotFound)
@@ -92,6 +93,35 @@ func GetUser(userID int) (*User, error) {
 Calling `Convert()` will run the error through all registered conversion functions and 
 use the first result that returns a non-nil value. In the above example, the error code
 will be set to `CodeNotFound`.
+
+## Attaching Custom Attributes to Errors
+
+Simplerr lets you define and detect your own custom attributes on errors. This works similarly to the `context` package.
+An attribute is attached to an error using the `Attr()` mutator and can be retrieved using the `GetAttribute()` function,
+which finds the first match of the attribute key in the error chain.
+
+It is highly recommended that a custom type be used as the key in order to prevent naming collisions of attributes. 
+The following example defines a `NotRetryable` attribute and attaches it on an error where a unique constraint is violated,
+this indicates that the error should be exempt by any retry mechanism. 
+
+
+```go
+
+// Define a custom type so we don't get naming collisions for value == 1
+type ErrorAttribute int
+
+// Define a specific key for the attribute
+const NotRetryable = ErrorAttribute(1)
+
+// Attach the `NotRetryable` attribute on the error
+serr := simplerr.New("user with that email already exists").
+	Code(CodeConstraintViolated).
+	Attr(NotRetryable, true)
+
+// Get the value of the NotRetryable attribute
+isRetryable := simplerr.GetAttribute(err, NotRetryable).(bool)
+// isRetryable == true
+```
 
 ## Detecting errors
 
@@ -189,12 +219,12 @@ simplerr.Formatter = func(e *simplerr.SimpleError) string {
 HTTP status codes can be set automatically by using the [ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http)
 package to translate `simplerr` error codes to HTTP status codes. 
 
-```go
+```c
 func (s *Server) GetUser(resp http.ResponseWriter, req *http.Request) {
 	
-    // extract userID from request...
+    // extract userName from request...
 	
-    err := db.GetUser(userID)
+    err := s.db.GetUser(userName)
 	if err != nil {
 	    // If err is a SimplError with code NotFound, the HTTP status will be set to 404
 	    // If no mapping is found, the status is set to 500
@@ -202,7 +232,7 @@ func (s *Server) GetUser(resp http.ResponseWriter, req *http.Request) {
 	    return
     }
 
-    resp.WriteHeader(200)
+    resp.WriteHeader(http.StatusCreated)
 }
 ```
 
@@ -231,11 +261,11 @@ when creating the interceptor:
 ```go
 func main() {
     // Get the default mapping provided by simplerr
-    m := DefaultMapping()
+    m := simplerr.DefaultMapping()
     // Add another mapping from simplerr code to GRPC code
     m[simplerr.CodeMalformedRequest] = codes.InvalidArgument
     // Create the interceptor by providing the mapping
-    interceptor := TranslateErrorCode(m)
+    interceptor := simplerr.TranslateErrorCode(m)
 }
 ```
 
@@ -243,5 +273,5 @@ func main() {
 
 Contributions and pull requests to `simplerr` are welcome but must align with the goals of the package:
 - Keep it simple
-- Features should have resonable defaults but provide flexibility with optional configuration
+- Features should have reasonable defaults but provide flexibility with optional configuration
 - Keep dependencies to a minimum

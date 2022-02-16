@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+// attribute is a key value pair for attributes on errors
+type attribute struct {
+	Key, Value interface{}
+}
+
 // SimpleError is an implementation of the `error` interface which provides functionality
 // to ease in the operating and handling of errors in applications.
 type SimpleError struct {
@@ -23,6 +28,8 @@ type SimpleError struct {
 	benignReason string
 	// auxiliary are auxiliary informational fields that can be attached to the error
 	auxiliary map[string]interface{}
+	// attr is a list of custom attributes attached the error
+	attr []attribute
 	// stackTrace is the call stack trace for the error
 	stackTrace []Call
 }
@@ -129,6 +136,11 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 	for k, v := range aux {
 		e.auxiliary[k] = v
 	}
+	return e
+}
+
+func (e *SimpleError) Attr(key, value interface{}) *SimpleError {
+	e.attr = append(e.attr, attribute{Key: key, Value: value})
 	return e
 }
 

@@ -74,6 +74,61 @@ func (s *TestSuite) TestErrorWrapping() {
 
 }
 
+func (s *TestSuite) TestHasErrorCode() {
+
+	original := New("something").Code(CodeMissingParameter)
+	wrapped := Wrap(original).Code(CodeNotFound)
+	wrapped2 := Wrap(wrapped).Code(CodeUnknown)
+
+	s.Run("look for first code", func() {
+		c, ok := HasErrorCodes(wrapped, CodeNotFound, CodeMissingParameter)
+		s.True(ok)
+		s.Equal(c, CodeNotFound)
+	})
+
+	s.Run("look for second code", func() {
+		c, ok := HasErrorCodes(wrapped, CodeMissingParameter, CodeNotFound)
+		s.True(ok)
+		s.Equal(c, CodeNotFound)
+	})
+
+	s.Run("look for wrapped code", func() {
+		c, ok := HasErrorCodes(wrapped2, CodeMissingParameter)
+		s.True(ok)
+		s.Equal(c, CodeMissingParameter)
+	})
+
+	s.Run("look for other wrapped code", func() {
+		c, ok := HasErrorCodes(wrapped2, CodeNotFound)
+		s.True(ok)
+		s.Equal(c, CodeNotFound)
+	})
+
+	s.Run("look for non existing code", func() {
+		c, ok := HasErrorCodes(wrapped2, CodePermissionDenied)
+		s.False(ok)
+		s.Zero(c)
+	})
+
+	s.Run("look for code in non-simple error", func() {
+		c, ok := HasErrorCodes(fmt.Errorf("something"), CodeNotFound)
+		s.False(ok)
+		s.Zero(c)
+	})
+
+	s.Run("look at nil error", func() {
+		c, ok := HasErrorCodes(nil, CodeNotFound)
+		s.False(ok)
+		s.Zero(c)
+	})
+
+	s.Run("look for no codes", func() {
+		c, ok := HasErrorCodes(wrapped2)
+		s.False(ok)
+		s.Zero(c)
+	})
+}
+
 func (s *TestSuite) TestBenign() {
 	original := fmt.Errorf("test")
 
@@ -232,6 +287,57 @@ func (s *TestSuite) TestAuxiliaryFields() {
 
 	s.Run("extract all aux from nil error", func() {
 		s.Nil(ExtractAuxiliary(nil))
+	})
+
+}
+
+func (s *TestSuite) TestAttributes() {
+
+	s.Run("single attribute", func() {
+		serr := New("something").Attr(1, "one")
+		v := GetAttribute(serr, 1)
+		s.Equal("one", v)
+	})
+
+	s.Run("non-existing attribute", func() {
+		serr := New("something")
+		v := GetAttribute(serr, "does-not-exist")
+		s.Nil(v)
+	})
+
+	s.Run("nil error", func() {
+		v := GetAttribute(nil, "does-not-exist")
+		s.Nil(v)
+	})
+
+	s.Run("single attribute on a wrapped error", func() {
+		serr := Wrap(New("something").Attr(1, "one"))
+		v := GetAttribute(serr, 1)
+		s.Equal("one", v)
+	})
+
+	s.Run("duplicate attribute with same key type and value", func() {
+		serr := New("something").
+			Attr(1, "one").
+			Attr(1, "two")
+		v := GetAttribute(serr, 1)
+		s.Equal("one", v, "first attribute does not get overwritten")
+	})
+
+	s.Run("custom key-type attribute does not overlap with same underlying type value", func() {
+		// Much like the context package, using a custom type prevents naming collisions
+		type customKey int
+		const attrKey = customKey(1)
+
+		serr := New("something").
+			Attr(attrKey, "one").
+			Attr(1, "two")
+
+		v := GetAttribute(serr, attrKey)
+		s.Equal("one", v)
+
+		v = GetAttribute(serr, 1)
+		s.Equal("two", v)
 	})
 
 }

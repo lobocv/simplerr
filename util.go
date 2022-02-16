@@ -111,3 +111,21 @@ func ExtractAuxiliary(err error) map[string]interface{} {
 
 	return aux
 }
+
+// GetAttribute gets the first instance of the key in the error chain
+func GetAttribute(err error, key interface{}) interface{} {
+	if err == nil {
+		return nil
+	}
+	e := As(err)
+	for e != nil {
+		for _, attr := range e.attr {
+			if attr.Key == key {
+				return attr.Value
+			}
+		}
+		e = As(e.Unwrap())
+	}
+
+	return nil
+}
