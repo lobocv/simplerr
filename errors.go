@@ -39,12 +39,12 @@ func New(_fmt string, args ...interface{}) *SimpleError {
 	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown, stackTrace: stackTrace(3)}
 }
 
-// Error satisfies the `error` interface
+// Error satisfies the `error` interface. It uses the `simplerr.Formatter` to generate an error string.
 func (e *SimpleError) Error() string {
 	return Formatter(e)
 }
 
-// Message sets the message text on the error
+// Message sets the message text on the error. This message it used to wrap the underlying error, if it exists.
 func (e *SimpleError) Message(msg string, args ...interface{}) *SimpleError {
 	e.msg = fmt.Sprintf(msg, args...)
 	return e
@@ -66,7 +66,7 @@ func (e *SimpleError) Code(code Code) *SimpleError {
 	return e
 }
 
-// Benign marks the error as "benign". A benign error is an error depending on the context of the caller.
+// Benign marks the error as "benign". A benign error is an error that depends on the context of the caller.
 // eg a NotFoundError is only an error if the caller is expecting the entity to exist.
 // These errors can usually be logged less severely (ie at INFO rather than ERROR level)
 func (e *SimpleError) Benign() *SimpleError {
@@ -96,19 +96,22 @@ func (e *SimpleError) GetSilent() bool {
 	return e.silent
 }
 
-// Silence sets the error as silent
+// Silence sets the error as silent. Silent errors can be ignored by loggers.
 func (e *SimpleError) Silence() *SimpleError {
 	e.silent = true
 	return e
 }
 
-// GetAuxiliary gets the auxiliary informational data attached to this error
+// GetAuxiliary gets the auxiliary informational data attached to this error.
+// This key-value data can be attached to structured loggers.
 func (e *SimpleError) GetAuxiliary() map[string]interface{} {
 	return e.auxiliary
 }
 
 // Aux attaches auxiliary informational data to the error as key value pairs.
 // All keys must be of type `string` and have a value. Keys without values are ignored.
+// This auxiliary data can be retrieved by using `ExtractAuxiliary()` and attached to structured loggers.
+// Do not use this to detect any attributes on the error, instead use Attr().`
 func (e *SimpleError) Aux(kv ...interface{}) *SimpleError {
 	if e.auxiliary == nil {
 		e.auxiliary = map[string]interface{}{}
@@ -129,6 +132,8 @@ func (e *SimpleError) Aux(kv ...interface{}) *SimpleError {
 }
 
 // AuxMap attaches auxiliary informational data to the error from a map[string]interface{}.
+// This auxiliary data can be retrieved by using `ExtractAuxiliary()` and attached to structured loggers.
+// Do not use this to detect any attributes on the error, instead use Attr().`
 func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 	if e.auxiliary == nil {
 		e.auxiliary = map[string]interface{}{}
@@ -139,22 +144,25 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 	return e
 }
 
+// Attr attaches an attribute to the error that can be detected when handling the error.
+// Attr() behaves similarly to `context.WithValue()`. Keys should be custom types in order to avoid naming collisions.
+// Use `GetAttribute()` to get the value of the attribute.
 func (e *SimpleError) Attr(key, value interface{}) *SimpleError {
 	e.attr = append(e.attr, attribute{Key: key, Value: value})
 	return e
 }
 
-// GetDescription returns the description of the error code
+// GetDescription returns the description of the error code on the error.
 func (e *SimpleError) GetDescription() string {
 	return registry.CodeDescription(e.code)
 }
 
-// StackTrace returns the stack trace at the point at which the error was raised
+// StackTrace returns the stack trace at the point at which the error was raised.
 func (e *SimpleError) StackTrace() []Call {
 	return e.stackTrace
 }
 
-// Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error
+// Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error.
 func (e *SimpleError) Unwrap() error {
 	return e.parent
 }

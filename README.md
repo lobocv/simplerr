@@ -241,7 +241,6 @@ that would complicate and bloat the library. Most of the prevalent HTTP status c
 Additional translations can be added by registering a mapping:
 
 ```go
-
 func main() {
     m := simplehttp.DefaultMapping()
     m[simplerr.CodeCanceled] = http.StatusRequestTimeout

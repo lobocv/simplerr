@@ -5,12 +5,13 @@ import (
 	"fmt"
 )
 
-// Wrap wraps the error in a SimpleError
+// Wrap wraps the error in a SimpleError. It defaults the error code to CodeUnknown.
 func Wrap(err error) *SimpleError {
 	return &SimpleError{parent: err, stackTrace: stackTrace(3)}
 }
 
-// Wrapf returns a new SimpleError by wrapping an error with a formatted message string
+// Wrapf returns a new SimpleError by wrapping an error with a formatted message string.
+// It defaults the error code to CodeUnknown
 func Wrapf(err error, msg string, a ...interface{}) *SimpleError {
 	msg = fmt.Sprintf(msg, a...)
 	return &SimpleError{parent: err, msg: msg, stackTrace: stackTrace(3)}
@@ -25,7 +26,8 @@ func As(err error) *SimpleError {
 	return expecterErr
 }
 
-// HasErrorCode checks the error code of an error if it is a SimpleError{}
+// HasErrorCode checks the error code of an error if it is a SimpleError{}.
+// nil errors or errors that are not SimplErrors return false.
 func HasErrorCode(err error, code Code) bool {
 	if e := As(err); e != nil {
 		if e.code == code {
@@ -52,7 +54,10 @@ func HasErrorCodes(err error, codes ...Code) (Code, bool) {
 	return 0, false
 }
 
-// IsBenign checks the error or any error in the chain, is benign
+// IsBenign checks the error or any error in the chain, is marked as benign.
+// It also returns the reason the error was marked benign. Benign errors should be logged or handled
+// less severely than non-benign errors. For example, you may choose to log benign errors at INFO level,
+// rather than ERROR.
 func IsBenign(err error) (reason string, benign bool) {
 	e := As(err)
 	if e == nil {
@@ -64,7 +69,8 @@ func IsBenign(err error) (reason string, benign bool) {
 	return IsBenign(e.Unwrap())
 }
 
-// IsSilent checks the error or any error in the chain, is silent
+// IsSilent checks the error or any error in the chain, is marked silent.
+// Silent errors should not need to be logged at all.
 func IsSilent(err error) bool {
 	e := As(err)
 	if e == nil {
@@ -76,8 +82,9 @@ func IsSilent(err error) bool {
 	return IsSilent(e.Unwrap())
 }
 
-// Convert converts a regular error to a SimpleError.
-// If it is already a SimpleError then it simply returns it as a SimpleError
+// Convert converts a regular error to a SimpleError using the registry to find any error conversion logic.
+// If `err` is already a SimpleError then it simply returns it as a SimpleError.
+// If no conversions are found, the error is simply wrapped as a SimpleError.
 func Convert(err error) *SimpleError {
 	if e := As(err); e != nil {
 		return e
@@ -112,7 +119,10 @@ func ExtractAuxiliary(err error) map[string]interface{} {
 	return aux
 }
 
-// GetAttribute gets the first instance of the key in the error chain
+// GetAttribute gets the first instance of the key in the error chain.
+// This can be used to define attributes on the error that do not have first-class support
+// with simplerr. Much like keys in the `context` package, the `key` should be a custom type so it does
+// not have naming collisions with other values.
 func GetAttribute(err error, key interface{}) interface{} {
 	if err == nil {
 		return nil
