@@ -19,21 +19,22 @@ and debugging easier.
 The `SimpleError` allows you to easily:
 
 - Apply an error code to any error. Choose from a list of standard codes or [register](https://pkg.go.dev/github.com/lobocv/simplerr#Registry) your own.
-- Register `func(err) *SimpleError` conversion functions to easily convert to `SimpleErrors` using `Convert()`.
+- Register `func(err) *SimpleError` conversion functions to easily convert `errors` to `SimpleErrors` using [`Convert()`](https://pkg.go.dev/github.com/lobocv/simplerr#Convert).
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
-- Attach key-value pairs to errors to be used with structured loggers.
-- Attach custom attributes similar to the `context` package.
-- Capture stack traces at the point the error is raised.
-- Mark errors as `silent` so they can be skipped by logging middleware.
-- Mark errors as `benign` so they can be logged less severely by logging middleware.
+- Attach key-value pairs to errors that can be used with structured loggers.
+- Attach and check for custom attributes similar to the `context` package.
+- Automatically capture stack traces at the point the error is raised.
+- Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
+- Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
 
 A complete list of standard error codes can be found [here](https://github.com/lobocv/simplerr/blob/master/codes.go).
 
 # Basic usage
 
 ## Creating errors
-Errors can be created with `New(format string, args... interface{})`, which works similar to `fmt.Errorf` but instead
-returns a `*SimplerError`. You can then chain mutations onto the error to add additional information.
+Errors can be created with [`New(format string, args... interface{})`](https://pkg.go.dev/github.com/lobocv/simplerr#New),
+which works similar to `fmt.Errorf` but instead returns a `*SimplerError`. You can then chain mutations onto the error 
+to add additional information.
 
 ```go
 userID := 123
@@ -46,7 +47,8 @@ err := simplerr.New("user %d does not exist in company %d", userID, companyID).
 In the above example, a new error is created and set to error code `CodeNotFound`. We have also attached auxiliary
 key-value pair information to the error that we can extract later on when we decide to handle or log the error.
 
-Errors can also be wrapped with the `Wrap(err error)` and `Wrapf(err error, format string, args... []interface{})` functions:
+Errors can also be wrapped with the [`Wrap(err error)`](https://pkg.go.dev/github.com/lobocv/simplerr#Wrap)) and 
+[`Wrapf(err error, format string, args... []interface{})`](https://pkg.go.dev/github.com/lobocv/simplerr#Wrapf) functions:
 
 ```go
 func GetUser(userID int) (*User, error) {
@@ -92,15 +94,16 @@ func GetUser(userID int) (*User, error) {
     return user, nil
 ```
 
-Calling `Convert()` will run the error through all registered conversion functions and 
-use the first result that returns a non-nil value. In the above example, the error code
+Calling [`Convert()`](https://pkg.go.dev/github.com/lobocv/simplerr#Convert) will run the error through all registered 
+conversion functions and use the first result that returns a non-nil value. In the above example, the error code
 will be set to `CodeNotFound`.
 
 ## Attaching Custom Attributes to Errors
 
 Simplerr lets you define and detect your own custom attributes on errors. This works similarly to the `context` package.
-An attribute is attached to an error using the `Attr()` mutator and can be retrieved using the `GetAttribute()` function,
-which finds the first match of the attribute key in the error chain.
+An attribute is attached to an error using the [`Attr()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Attr)
+mutator and can be retrieved using the `GetAttribute()` function, which finds the first match of the attribute key in 
+the error chain.
 
 It is highly recommended that a custom type be used as the key in order to prevent naming collisions of attributes. 
 The following example defines a `NotRetryable` attribute and attaches it on an error where a unique constraint is violated,
@@ -108,7 +111,6 @@ this indicates that the error should be exempt by any retry mechanism.
 
 
 ```go
-
 // Define a custom type so we don't get naming collisions for value == 1
 type ErrorAttribute int
 
@@ -127,7 +129,7 @@ isRetryable := simplerr.GetAttribute(err, NotRetryable).(bool)
 
 ## Detecting errors
 
-`SimpleError` implements the `Unwrap` method so it can be used with the standard library
+`SimpleError` implements the `Unwrap()` method so it can be used with the standard library
 `errors.Is()` and `errors.As()` functions. However, the ability to use error codes makes
 abstracting and detecting errors much simpler. Instead of looking for a specific error, `simplerr`
 allows you to search for the **kind** of error by looking for an error code:
@@ -162,9 +164,9 @@ simple as detecting the `SimpleError` and reacting to it's attributes.
 
 ## Detecting Errors
 
-To detect a specific error code, you can use `HasErrorCode(err error, c Code)`. If you want to look for several different
-error codes, use `HasErrorCodes(err error, codes... Code)`, which returns the first of the provided error codes that is 
-detected, and a boolean for whether anything was detected.
+To detect a specific error code, you can use [`HasErrorCode(err error, c Code)`](https://pkg.go.dev/github.com/lobocv/simplerr#HasErrorCode).
+If you want to look for several different error codes, use [`HasErrorCodes(err error, codes... Code)`](https://pkg.go.dev/github.com/lobocv/simplerr#HasErrorCodes),
+which returns the first of the provided error codes that is detected, and a boolean for whether anything was detected.
 
 
 ## Logging SimpleErrors
@@ -177,7 +179,8 @@ there is a lack of control when dealing only with the simple `string`-backed err
 
 It is good practice to use structured logging to improve observability. However, the standard library error does
 not allow for attaching and retrieving key-value pairs on errors. With `simplerr` you can retrieve a superset of all attached
-key-value data on errors in the chain using `ExtractAuxiliary()` or on the individual error with `GetAuxiliary()`
+key-value data on errors in the chain using [`ExtractAuxiliary()`](https://pkg.go.dev/github.com/lobocv/simplerr#ExtractAuxiliary)
+or on the individual error with [`GetAuxiliary()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.GetAuxiliary).
 
 ### Benign Errors
 
@@ -191,19 +194,21 @@ The server must still return the error so that it reaches the client, however on
 error and does not need to be logged as such. With `simplerr`, it is possible to mark an error as `benign`, which allows logging middleware to detect and log
 the error at a less severe level such as `INFO`.
 
-Errors can be marked benign by either using the `Benign()` or `BenignReason()` mutators. The latter also attaches a 
-reason why the error was marked benign. To detect benign errors, use the `IsBenign()` function which looks for any
-benign errors in the chain of errors.
+Errors can be marked benign by either using the [`Benign()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign)
+or [`BenignReason()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.BenignReason) mutators. The latter also attaches a 
+reason why the error was marked benign. To detect benign errors, use the [`IsBenign()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsBenign) 
+function which looks for any benign errors in the chain of errors.
 
 ### Silent Errors
 
-Similar to benign errors, an error can be marked as silent using the `Silent()` mutator to indicate to logging middleware to not
-log this error at all. This is useful in situations where a very high amount of benign errors are flooding the logs.
-To detect silent errors, use the `IsSilent()` function which looks for any silent errors in the chain of errors.
+Similar to benign errors, an error can be marked as silent using the [`Silence()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence)
+mutator to indicate to logging middleware to not log this error at all. This is useful in situations where a very high 
+amount of benign errors are flooding the logs. To detect silent errors, use the [`IsSilent()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsSilent)
+function which looks for any silent errors in the chain of errors.
 
 ### Changing Error Formatting
 
-The default formatting of the error string can be changed by modifying the `simplerr.Formatter` variable.
+The default formatting of the error string can be changed by modifying the [`simplerr.Formatter`](https://pkg.go.dev/github.com/lobocv/simplerr#Formatter) variable.
 For example, to use a new line to separate the message and the wrapped error you can do:
 
 ```go
