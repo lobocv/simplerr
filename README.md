@@ -1,6 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/lobocv/simplerr)](https://goreportcard.com/report/github.com/lobocv/simplerr)
 [<img src="https://img.shields.io/github/license/lobocv/simplerr">](https://img.shields.io/github/license/lobocv/simplerr)
 <a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-100%25-brightgreen.svg?longCache=true&style=flat)</a>
+![Build Status](https://github.com/lobocv/simplerr/actions/workflows/build.yaml/badge.svg)
 [![Go Reference](https://pkg.go.dev/badge/github.com/lobocv/simplerr.svg)](https://pkg.go.dev/github.com/lobocv/simplerr)
 
 # Simplerr
