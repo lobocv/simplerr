@@ -36,7 +36,7 @@ const (
 	CodeCanceled Code = 12
 	// CodeResourceExhausted indicates that some limited resource (eg rate limit or disk space) has been reached
 	CodeResourceExhausted Code = 13
-	// CodeUnavailable indicates that some server itself is unavailable for processing requests.
+	// CodeUnavailable indicates that the server itself is unavailable for processing requests.
 	CodeUnavailable Code = 14
 )
 

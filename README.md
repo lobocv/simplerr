@@ -27,7 +27,42 @@ The `SimpleError` allows you to easily:
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
 - Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
 
+# Error Codes
+
+The following error codes are provided by default with `simplerr`. These can be extended by registering custom codes.
+
+
+Error Code | Description
+-----------|------------
+Unknown| The default code for errors that are not classified
+AlreadyExists| An attempt to create an entity failed because it already exists
+NotFound| Means some requested entity (e.g., file or directory) was not found
+InvalidArgument| The caller specified an invalid argument
+MalformedRequest| The syntax of the request cannot be interpreted (eg JSON decoding error)
+Unauthenticated| The request does not have valid authentication credentials for the operation.
+PermissionDenied| That the identity of the user is confirmed but they do not have permission to perform the request
+ConstraintViolated| A constraint in the system has been violated. Eg. a duplicate key error from a unique index
+NotSupported| The request is not supported
+NotImplemented| The request is not implemented
+MissingParameter| A required parameter is missing or empty
+DeadlineExceeded| A request exceeded it's deadline before completion
+Canceled| The request was canceled before completion
+ResourceExhausted| A limited resource, such as a rate limit or disk space, has been reached
+Unavailable| The server itself is unavailable for processing requests.
+
 A complete list of standard error codes can be found [here](https://github.com/lobocv/simplerr/blob/master/codes.go).
+## Custom Error Codes
+
+Custom error codes can be registered globally with `simplerr`. The standard error codes cannot
+be overwritten and have reserved values from 0-99. 
+
+```go
+func main() {
+    r := NewRegistry()
+    r.RegisterErrorCode(100, "custom error description")
+}
+	
+```
 
 # Basic usage
 
@@ -54,7 +89,8 @@ Errors can also be wrapped with the [`Wrap(err error)`](https://pkg.go.dev/githu
 func GetUser(userID int) (*User, error) {
     user, err := db.GetUser(userID)
     if err != nil {
-        serr = simplerr.Wrapf(err, "failed to get user with id = %d", userID).Aux("user_id", userID)
+        serr = simplerr.Wrapf(err, "failed to get user with id = %d", userID).
+			Aux("user_id", userID)
         if errors.Is(err, sql.ErrNoRows) {
             serr.Code(CodeNotFound)   
         }
@@ -102,7 +138,7 @@ will be set to `CodeNotFound`.
 
 Simplerr lets you define and detect your own custom attributes on errors. This works similarly to the `context` package.
 An attribute is attached to an error using the [`Attr()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Attr)
-mutator and can be retrieved using the `GetAttribute()` function, which finds the first match of the attribute key in 
+mutator and can be retrieved using the [`GetAttribute()`](https://pkg.go.dev/github.com/lobocv/simplerr#GetAttribute) function, which finds the first match of the attribute key in 
 the error chain.
 
 It is highly recommended that a custom type be used as the key in order to prevent naming collisions of attributes. 
@@ -203,8 +239,8 @@ function which looks for any benign errors in the chain of errors.
 
 Similar to benign errors, an error can be marked as silent using the [`Silence()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence)
 mutator to indicate to logging middleware to not log this error at all. This is useful in situations where a very high 
-amount of benign errors are flooding the logs. To detect silent errors, use the [`IsSilent()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsSilent)
-function which looks for any silent errors in the chain of errors.
+amount of benign errors are flooding the logs. To detect silent errors, use the [`IsSilent()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsSilent) function which looks for 
+any silent errors in the chain of errors.
 
 ### Changing Error Formatting
 
