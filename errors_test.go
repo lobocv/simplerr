@@ -384,7 +384,13 @@ func (s *TestSuite) TestCustomRegistry() {
 
 	s.Run("cannot register reserved codes already in use ", func() {
 		s.Panics(func() {
-			r.RegisterErrorCode(CodeNotFound-1, "something else")
+			r.RegisterErrorCode(CodeNotFound, "something else")
+		})
+	})
+
+	s.Run("cannot register custom code already in use", func() {
+		s.Panics(func() {
+			r.RegisterErrorCode(CodeCustom, "custom")
 		})
 	})
 
