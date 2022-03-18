@@ -38,6 +38,13 @@ func TestTranslateErrorCode(t *testing.T) {
 
 		grpcStatusCode := status.Code(gotErr)
 		require.Equal(t, tc.expected, grpcStatusCode)
+
+		// Check that the translated error can still be detected as a SimpleError
+		expectSimplerr := simplerr.As(tc.err) != nil
+		if expectSimplerr {
+			gotSimplerr := simplerr.As(gotErr) != nil
+			require.True(t, gotSimplerr)
+		}
 	}
 
 }
