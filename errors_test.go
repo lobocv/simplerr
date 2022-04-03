@@ -1,8 +1,6 @@
 package simplerr
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/suite"
@@ -223,40 +221,6 @@ func (s *TestSuite) TestSilent() {
 	})
 }
 
-// Test that any error can be convert to an HSError, and if it is already an HSError, it gets casted instead
-func (s *TestSuite) TestConvert() {
-	serr := New("original").Silence()
-
-	s.Run("SimpleErrors are not converted, just returned", func() {
-		got := Convert(serr)
-		s.Equal(got, serr)
-	})
-
-	s.Run("convert non-simple error to simple error (no conversions)", func() {
-		stdErr := fmt.Errorf("something")
-		got := Convert(stdErr)
-		s.Equal(got.parent, stdErr)
-	})
-
-	s.Run("convert non-simple error to simple error (with conversions)", func() {
-
-		testCases := []struct {
-			err          error
-			expectedCode Code
-		}{
-			{err: context.DeadlineExceeded, expectedCode: CodeDeadlineExceeded},
-			{err: context.Canceled, expectedCode: CodeCanceled},
-		}
-
-		for _, tc := range testCases {
-			got := Convert(tc.err)
-			s.Equal(got.GetCode(), tc.expectedCode)
-		}
-
-	})
-
-}
-
 func (s *TestSuite) TestAuxiliaryFields() {
 	serr := New("something").Aux("one", 1, "two", 2.0, "three", "THREE")
 	expected := map[string]interface{}{
@@ -353,14 +317,8 @@ func (s *TestSuite) TestCustomRegistry() {
 	r := NewRegistry()
 	const CodeCustom = 100
 	r.RegisterErrorCode(CodeCustom, "custom")
-	r.RegisterErrorConversions(func(err error) *SimpleError {
-		if err.Error() == "convert this" {
-			return Wrap(err).Code(CodeNotFound)
-		}
-		return nil
-	})
 	// Because the registry is a global, to prevent mucking with other tests, set it back afterwards
-	defaultRegistry := registry
+	defaultRegistry := GetRegistry()
 	SetRegistry(r)
 	defer SetRegistry(defaultRegistry)
 
@@ -396,20 +354,6 @@ func (s *TestSuite) TestCustomRegistry() {
 
 }
 
-func (s *TestSuite) TestModifyDefaultRegistry() {
-	r := GetRegistry()
-	r.RegisterErrorConversions(func(err error) *SimpleError {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Wrap(err).Code(CodeNotFound)
-		}
-		return nil
-	})
-
-	serr := Convert(sql.ErrNoRows).Message("failed to get user with id %d", 123)
-	s.Equal(CodeNotFound, serr.GetCode())
-	s.Equal("failed to get user with id 123: sql: no rows in result set", serr.Error())
-}
-
 func (s *TestSuite) TestErrorFormatting() {
 	original := fmt.Errorf("original")
 	serr1 := Wrapf(original, "wrapper %d", 1)
@@ -443,31 +387,23 @@ func (s *TestSuite) TestStackTrace() {
 	stack := e.StackTrace()
 	s.checkCall(stack[0], "First")
 
-	e = e.Unwrap().(*SimpleError)
+	e = e.Unwrap().(*SimpleError) // nolint: errcheck
 	stack = e.StackTrace()
 	s.checkCall(stack[0], "Second")
 	s.checkCall(stack[1], "First")
 
-	e = e.Unwrap().(*SimpleError)
+	e = e.Unwrap().(*SimpleError) // nolint: errcheck
 	stack = e.StackTrace()
 	s.checkCall(stack[0], "Third")
 	s.checkCall(stack[1], "Second")
 	s.checkCall(stack[2], "First")
 
-	e = e.Unwrap().(*SimpleError)
+	e = e.Unwrap().(*SimpleError) // nolint: errcheck
 	stack = e.StackTrace()
 	s.checkCall(stack[0], "Fourth")
 	s.checkCall(stack[1], "Third")
 	s.checkCall(stack[2], "Second")
 	s.checkCall(stack[3], "First")
-}
-
-// Test that stack trace is accurate when using Convert()
-func (s *TestSuite) TestStackTraceOnConvert() {
-	err := fmt.Errorf("something")
-	convErr := Convert(err)
-	stack := convErr.StackTrace()
-	s.checkCall(stack[0], "TestStackTraceOnConvert")
 }
 
 func Fourth() *SimpleError {

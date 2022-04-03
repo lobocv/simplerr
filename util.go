@@ -82,25 +82,6 @@ func IsSilent(err error) bool {
 	return IsSilent(e.Unwrap())
 }
 
-// Convert converts a regular error to a SimpleError using the registry to find any error conversion logic.
-// If `err` is already a SimpleError then it simply returns it as a SimpleError.
-// If no conversions are found, the error is simply wrapped as a SimpleError.
-func Convert(err error) *SimpleError {
-	if e := As(err); e != nil {
-		return e
-	}
-
-	// Check if any registered code conversion functions create a SimpleError{} and return it if so
-	for _, f := range registry.conversions {
-		if e := f(err); e != nil {
-			return e
-		}
-	}
-
-	// Do a minimal conversion to SimpleError{}, assuming nothing about the error
-	return &SimpleError{parent: err, stackTrace: stackTrace(3)}
-}
-
 // ExtractAuxiliary extracts a superset of auxiliary data from all errors in the chain.
 // Wrapper error auxiliary data take precedent over later errors.
 func ExtractAuxiliary(err error) map[string]interface{} {

@@ -19,7 +19,6 @@ and debugging easier.
 The `SimpleError` allows you to easily:
 
 - Apply an error code to any error. Choose from a list of standard codes or [register](https://pkg.go.dev/github.com/lobocv/simplerr#Registry) your own.
-- Register `func(err) *SimpleError` conversion functions to easily convert `errors` to `SimpleErrors` using [`Convert()`](https://pkg.go.dev/github.com/lobocv/simplerr#Convert).
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
 - Attach key-value pairs to errors that can be used with structured loggers.
 - Attach and check for custom attributes similar to the `context` package.
@@ -98,41 +97,6 @@ func GetUser(userID int) (*User, error) {
     }
 }
 ```
-
-## Automatic error conversion:
-
-The above example where we manually check for `sql.ErrNoRows` can be cleaned up further by globally registering an error 
-conversion function:
-
-```go
-
-func main() {
-    // Register a conversion function for sql.ErrNoRows to be converted to CodeNotFound
-    r := simplerr.GetRegistry()
-    r.RegisterErrorConversions(func(err error) simplerr.*SimpleError {
-        if errors.Is(err, sql.ErrNoRows) {
-            return simplerr.Wrap(err).Code(CodeNotFound)
-        }
-        return nil
-    })
-    /// ...
-}
-```
-and using `Convert()`:
-```go
-func GetUser(userID int) (*User, error) {
-    user, err := db.GetUser(userID)
-    if err != nil {
-        return nil, simplerr.Convert(err).
-    		       Message("failed to get user with id = %d", userID).
-    		       Aux("user_id", userID)
-    }
-    return user, nil
-```
-
-Calling [`Convert()`](https://pkg.go.dev/github.com/lobocv/simplerr#Convert) will run the error through all registered 
-conversion functions and use the first result that returns a non-nil value. In the above example, the error code
-will be set to `CodeNotFound`.
 
 ## Attaching Custom Attributes to Errors
 

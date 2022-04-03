@@ -12,7 +12,6 @@ func init() {
 	for code, description := range defaultErrorCodes {
 		registry.codeDescriptions[code] = description
 	}
-	registry.conversions = append(registry.conversions, defaultErrorConversions...)
 }
 
 // GetRegistry gets the currently set registry
@@ -25,19 +24,14 @@ func SetRegistry(r *Registry) {
 	registry = r
 }
 
-// ErrorConversion is a function that converts an `error` into a  simple SimpleError{}
-type ErrorConversion func(err error) *SimpleError
-
 // Registry is a registry of information on how to handle and serve simple errors
 type Registry struct {
 	codeDescriptions map[Code]string
-	conversions      []ErrorConversion
 }
 
 // NewRegistry creates a new registry without any defaults
 func NewRegistry() *Registry {
 	return &Registry{
-		conversions:      []ErrorConversion{},
 		codeDescriptions: map[Code]string{},
 	}
 }
@@ -54,11 +48,6 @@ func (r *Registry) RegisterErrorCode(code Code, description string) {
 		panic(fmt.Sprintf("SimpleError codes 0 to %d are reserved.", NumberOfReservedCodes-1))
 	}
 	r.codeDescriptions[code] = description
-}
-
-// RegisterErrorConversions registers an error conversion function
-func (r *Registry) RegisterErrorConversions(funcs ...ErrorConversion) {
-	r.conversions = append(r.conversions, funcs...)
 }
 
 // ErrorCodes returns a copy of the registered error codes and their descriptions
