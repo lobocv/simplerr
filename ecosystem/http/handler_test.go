@@ -36,10 +36,15 @@ func TestHandlerAdapter(t *testing.T) {
 }
 
 func TestHandlerFunc(t *testing.T) {
-	ep := HandlerFunc(func(writer http.ResponseWriter, request *http.Request) error {
+	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		return simplerr.New("something").Code(simplerr.CodeNotFound)
-	})
+	}
+
 	rec := httptest.NewRecorder()
-	ep.Handler()(rec, nil)
+	NewHandlerFuncAdapter(ep)(rec, nil)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	rec = httptest.NewRecorder()
+	HandlerFunc(ep).Adapter()(rec, nil)
 	require.Equal(t, http.StatusNotFound, rec.Code)
 }

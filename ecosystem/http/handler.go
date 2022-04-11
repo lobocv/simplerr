@@ -27,8 +27,13 @@ func (h HandlerAdapter) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 // HandlerFunc is analogous to http.HandlerFunc but returns an error
 type HandlerFunc func(http.ResponseWriter, *http.Request) error
 
-// Handler returns a http.HandlerFunc which calls SetStatus on the returned error
-func (h HandlerFunc) Handler() http.HandlerFunc {
+// Adapter returns a http.HandlerFunc which calls SetStatus on the returned error
+func (h HandlerFunc) Adapter() http.HandlerFunc {
+	return NewHandlerFuncAdapter(h)
+}
+
+// NewHandlerFuncAdapter returns a http.HandlerFunc which calls SetStatus on the returned error
+func NewHandlerFuncAdapter(h HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		err := h(writer, request)
 		SetStatus(writer, err)

@@ -19,7 +19,7 @@ and debugging easier.
 The `SimpleError` allows you to easily:
 
 - Apply an error code to any error. Choose from a list of standard codes or [register](https://pkg.go.dev/github.com/lobocv/simplerr#Registry) your own.
-- Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC`.
+- Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC` via middleware.
 - Attach key-value pairs to errors that can be used with structured loggers.
 - Attach and check for custom attributes similar to the `context` package.
 - Automatically capture stack traces at the point the error is raised.
@@ -224,23 +224,39 @@ simplerr.Formatter = func(e *simplerr.SimpleError) string {
 ## HTTP Status Codes
 
 HTTP status codes can be set automatically by using the [ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http)
-package to translate `simplerr` error codes to HTTP status codes. 
+package to translate `simplerr` error codes to HTTP status codes. To do so, you must use the `simplehttp.Handler` or 
+`simplehttp.HandlerFunc`instead of the ones defined in the `http` package. The only difference between the two is that
+the `simplehttp` ones return an error. 
+Adapters are provided in order to interface with the `http` package. These adapters call `simplehttp.SetStatus()` on the returned
+error in order to set the http status code on the response.
 
-```c
-func (s *Server) GetUser(resp http.ResponseWriter, req *http.Request) {
+Given a server with the an endpoint `GetUser`:
+
+```go
+func (s *Server) GetUser(resp http.ResponseWriter, req *http.Request) error {
 	
     // extract userName from request...
 	
     err := s.db.GetUser(userName)
 	if err != nil {
-	    // If err is a SimplError with code NotFound, the HTTP status will be set to 404
-	    // If no mapping is found, the status is set to 500
-	    simplehttp.SetStatus(resp, err)
-	    return
+		// This returned error is translated into a response code via the http adapter
+	    return err
     }
 
     resp.WriteHeader(http.StatusCreated)
 }
+```
+
+We can mount the endpoint with the `simplehttp.NewHandlerAdapter()`:
+
+```go
+s := &Server{}
+http.ListenAndServe("", simplehttp.NewHandlerAdapter(s))
+````
+or if it was a handler function instead, using the `simplehttp.NewHandlerFuncAdapter()` method:
+
+```go
+http.ListenAndServe("", simplehttp.NewHandlerFuncAdapter(fn))
 ```
 
 Simplerr does not provide a 1:1 mapping of all HTTP status because there are too many obscure and under-utilized HTTP codes
