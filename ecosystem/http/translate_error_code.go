@@ -53,13 +53,13 @@ func init() {
 
 // SetStatus sets the http.Response status from the error code in the provided error, if it is a SimpleError
 // If error is nil or not a SimpleError, the status will not be set.
-func SetStatus(r *http.Response, err error) {
+func SetStatus(r http.ResponseWriter, err error) {
 	if err == nil {
 		return
 	}
 	e := simplerr.As(err)
 	if e == nil {
-		r.StatusCode = defaultErrorCode
+		r.WriteHeader(defaultErrorCode)
 		return
 	}
 
@@ -67,10 +67,10 @@ func SetStatus(r *http.Response, err error) {
 	// If we cant find any matches, set it to the default error code
 	code, ok := simplerr.HasErrorCodes(e, simplerrCodes...)
 	if !ok {
-		r.StatusCode = defaultErrorCode
+		r.WriteHeader(defaultErrorCode)
 		return
 	}
 
 	// Get the HTTP code, this lookup should never fail
-	r.StatusCode = mapping[code]
+	r.WriteHeader(mapping[code])
 }

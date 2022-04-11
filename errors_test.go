@@ -72,6 +72,18 @@ func (s *TestSuite) TestErrorWrapping() {
 
 }
 
+func (s *TestSuite) TestMutations() {
+	err := New("123").Code(CodeNotFound).Message("something")
+
+	s.Run("get code", func() {
+		s.Equal(CodeNotFound, err.GetCode())
+	})
+
+	s.Run("get message", func() {
+		s.Equal("something", err.Error())
+	})
+}
+
 func (s *TestSuite) TestHasErrorCode() {
 
 	original := New("something").Code(CodeMissingParameter)

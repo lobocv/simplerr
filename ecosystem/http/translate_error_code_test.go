@@ -5,6 +5,7 @@ import (
 	"github.com/lobocv/simplerr"
 	"github.com/stretchr/testify/require"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -22,7 +23,7 @@ func TestTranslateErrorCode(t *testing.T) {
 		{fmt.Errorf("wrapped: %w", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusUnauthorized},
 		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusInternalServerError},
 		{simplerr.Wrap(simplerr.New("something").Code(simplerr.CodePermissionDenied)), http.StatusForbidden},
-		{nil, 0},
+		{nil, 200}, // default code for httptest.ResponseRecorder is 200
 	}
 
 	// Alter the default mapping
@@ -31,11 +32,11 @@ func TestTranslateErrorCode(t *testing.T) {
 	SetMapping(m)
 	SetDefaultErrorCode(http.StatusInternalServerError)
 
-	for _, tc := range testCases {
-		r := http.Response{}
-		SetStatus(&r, tc.err)
+	for ii, tc := range testCases {
+		r := httptest.NewRecorder()
+		SetStatus(r, tc.err)
 
-		require.Equal(t, tc.expected, r.StatusCode)
+		require.Equal(t, tc.expected, r.Code, fmt.Sprintf("test case %d failed", ii))
 	}
 
 }
