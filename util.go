@@ -17,7 +17,8 @@ func Wrapf(err error, msg string, a ...interface{}) *SimpleError {
 	return &SimpleError{parent: err, msg: msg, stackTrace: stackTrace(3)}
 }
 
-// As attempts to find a SimpleError in the chain of errors, similar to errors.As()
+// As attempts to find a SimpleError in the chain of errors, similar to errors.As().
+// Note that this will NOT match structs which embed a *SimpleError.
 func As(err error) *SimpleError {
 	var expecterErr *SimpleError
 	if ok := errors.As(err, &expecterErr); !ok {
@@ -138,19 +139,24 @@ func ExtractAuxiliary(err error) map[string]interface{} {
 // This can be used to define attributes on the error that do not have first-class support
 // with simplerr. Much like keys in the `context` package, the `key` should be a custom type so it does
 // not have naming collisions with other values.
-func GetAttribute(err error, key interface{}) interface{} {
-	if err == nil {
-		return nil
+func GetAttribute(err error, key interface{}) (interface{}, bool) {
+	type AttrHolder interface {
+		GetAttribute(key interface{}) (interface{}, bool)
 	}
-	e := As(err)
+	if err == nil {
+		return nil, false
+	}
+	e := err
 	for e != nil {
-		for _, attr := range e.attr {
-			if attr.Key == key {
-				return attr.Value
+		var attr interface{}
+		if attrHolder, ok := e.(AttrHolder); ok {
+			if attr, ok = attrHolder.GetAttribute(key); ok {
+				return attr, true
 			}
 		}
-		e = As(e.Unwrap())
+
+		e = errors.Unwrap(e)
 	}
 
-	return nil
+	return nil, false
 }

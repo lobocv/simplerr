@@ -330,32 +330,54 @@ func (s *TestSuite) TestAttributes() {
 
 	s.Run("single attribute", func() {
 		serr := New("something").Attr(1, "one")
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v)
 	})
 
 	s.Run("non-existing attribute", func() {
 		serr := New("something")
-		v := GetAttribute(serr, "does-not-exist")
+		v, exists := GetAttribute(serr, "does-not-exist")
+		s.False(exists)
 		s.Nil(v)
 	})
 
 	s.Run("nil error", func() {
-		v := GetAttribute(nil, "does-not-exist")
+		v, exists := GetAttribute(nil, "does-not-exist")
+		s.False(exists)
 		s.Nil(v)
 	})
 
 	s.Run("single attribute on a wrapped error", func() {
 		serr := Wrap(New("something").Attr(1, "one"))
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v)
+	})
+
+	s.Run("single attribute on an embedded error", func() {
+		embeddedErr := EmbeddedSimpleErr{SimpleError: Wrap(New("something").Attr(1, "one"))}
+		_ = embeddedErr.Attr(2, "two")
+
+		v, exists := GetAttribute(embeddedErr, 1)
+		s.True(exists)
+		s.Equal("one", v)
+
+		v, exists = GetAttribute(embeddedErr, 2)
+		s.True(exists)
+		s.Equal("two", v)
+
+		v, exists = GetAttribute(embeddedErr, "does not exist")
+		s.False(exists)
+		s.Nil(v)
 	})
 
 	s.Run("duplicate attribute with same key type and value", func() {
 		serr := New("something").
 			Attr(1, "one").
 			Attr(1, "two")
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v, "first attribute does not get overwritten")
 	})
 
@@ -368,10 +390,12 @@ func (s *TestSuite) TestAttributes() {
 			Attr(attrKey, "one").
 			Attr(1, "two")
 
-		v := GetAttribute(serr, attrKey)
+		v, exists := GetAttribute(serr, attrKey)
+		s.True(exists)
 		s.Equal("one", v)
 
-		v = GetAttribute(serr, 1)
+		v, exists = GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("two", v)
 	})
 
