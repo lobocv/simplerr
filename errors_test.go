@@ -88,49 +88,75 @@ func (s *TestSuite) TestMutations() {
 	})
 }
 
-func (s *TestSuite) TestHasErrorCode() {
+func (s *TestSuite) TestHasErrorCodes() {
 
 	original := New("something").Code(CodeMissingParameter)
 	wrapped := Wrap(original).Code(CodeNotFound)
 	wrapped2 := Wrap(wrapped).Code(CodeUnknown)
 
 	s.Run("look for first code", func() {
+		s.True(HasErrorCode(wrapped, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped, CodeNotFound, CodeMissingParameter)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
 	s.Run("look for second code", func() {
+		s.True(HasErrorCode(wrapped, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped, CodeMissingParameter, CodeNotFound)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
 	s.Run("look for wrapped code", func() {
+		s.True(HasErrorCode(wrapped2, CodeMissingParameter))
+
 		c, ok := HasErrorCodes(wrapped2, CodeMissingParameter)
 		s.True(ok)
 		s.Equal(c, CodeMissingParameter)
 	})
 
 	s.Run("look for other wrapped code", func() {
+		s.True(HasErrorCode(wrapped2, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped2, CodeNotFound)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
+	s.Run("look for other embedded error code", func() {
+		embeddedErr := EmbeddedSimpleErr{SimpleError: wrapped}
+
+		s.True(HasErrorCode(embeddedErr, CodeNotFound))
+
+		c, ok := HasErrorCodes(embeddedErr, CodeNotFound)
+		s.True(ok)
+		s.Equal(c, CodeNotFound)
+	})
+
 	s.Run("look for non existing code", func() {
+		s.False(HasErrorCode(wrapped, CodePermissionDenied))
+
 		c, ok := HasErrorCodes(wrapped2, CodePermissionDenied)
 		s.False(ok)
 		s.Zero(c)
 	})
 
 	s.Run("look for code in non-simple error", func() {
-		c, ok := HasErrorCodes(fmt.Errorf("something"), CodeNotFound)
+		err := fmt.Errorf("something")
+
+		s.False(HasErrorCode(err, CodeNotFound))
+
+		c, ok := HasErrorCodes(err, CodeNotFound)
 		s.False(ok)
 		s.Zero(c)
 	})
 
 	s.Run("look at nil error", func() {
+		s.False(HasErrorCode(nil, CodeNotFound))
+
 		c, ok := HasErrorCodes(nil, CodeNotFound)
 		s.False(ok)
 		s.Zero(c)

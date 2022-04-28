@@ -29,29 +29,42 @@ func As(err error) *SimpleError {
 // HasErrorCode checks the error code of an error if it is a SimpleError{}.
 // nil errors or errors that are not SimplErrors return false.
 func HasErrorCode(err error, code Code) bool {
-	if e := As(err); e != nil {
-		if e.code == code {
-			return true
-		}
-		return HasErrorCode(e.parent, code)
+	type CodedError interface {
+		GetCode() Code
 	}
-	return false
+	if err == nil {
+		return false
+	}
+	// The err may wrap another CodedError who's value may be set. Therefore, we only exit if we find
+	// a matching code, otherwise we traverse the remaining error chain
+	codedErr, ok := err.(CodedError)
+	if ok && codedErr.GetCode() == code {
+		return true
+	}
+
+	return HasErrorCode(errors.Unwrap(err), code)
 }
 
 // HasErrorCodes looks for the specified error codes in the chain of errors.
 // It returns the first code in the list that is found in the chain and a boolean for whether
 // anything was found.
 func HasErrorCodes(err error, codes ...Code) (Code, bool) {
-	if e := As(err); e != nil {
-		for _, c := range codes {
-			if c == e.code {
-				return c, true
-			}
-		}
-
-		return HasErrorCodes(e.parent, codes...)
+	type CodedError interface {
+		GetCode() Code
 	}
-	return 0, false
+	if err == nil {
+		return 0, false
+	}
+	for _, code := range codes {
+		// The err may wrap another CodedError who's value may be set. Therefore, we only exit if we find
+		// a matching code, otherwise we traverse the remaining error chain
+		codedErr, ok := err.(CodedError)
+		if ok && codedErr.GetCode() == code {
+			return code, true
+		}
+	}
+
+	return HasErrorCodes(errors.Unwrap(err), codes...)
 }
 
 // IsBenign checks the error or any error in the chain, is marked as benign.
@@ -67,9 +80,9 @@ func IsBenign(err error) (string, bool) {
 	}
 	// The err may wrap another BenignError who's value may be set to true. Therefore, we only exit if the
 	// benign flag is true, otherwise we keep traversing the error chain
-	silenterr, ok := err.(BenignError)
+	benignErr, ok := err.(BenignError)
 	if ok {
-		if reason, benign := silenterr.GetBenignReason(); benign {
+		if reason, benign := benignErr.GetBenignReason(); benign {
 			return reason, true
 		}
 	}
