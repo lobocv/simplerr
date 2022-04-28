@@ -58,28 +58,42 @@ func HasErrorCodes(err error, codes ...Code) (Code, bool) {
 // It also returns the reason the error was marked benign. Benign errors should be logged or handled
 // less severely than non-benign errors. For example, you may choose to log benign errors at INFO level,
 // rather than ERROR.
-func IsBenign(err error) (reason string, benign bool) {
-	e := As(err)
-	if e == nil {
+func IsBenign(err error) (string, bool) {
+	type BenignError interface {
+		GetBenignReason() (string, bool)
+	}
+	if err == nil {
 		return "", false
 	}
-	if e.benign {
-		return e.benignReason, e.benign
+	// The err may wrap another BenignError who's value may be set to true. Therefore, we only exit if the
+	// benign flag is true, otherwise we keep traversing the error chain
+	silenterr, ok := err.(BenignError)
+	if ok {
+		if reason, benign := silenterr.GetBenignReason(); benign {
+			return reason, true
+		}
 	}
-	return IsBenign(e.Unwrap())
+
+	return IsBenign(errors.Unwrap(err))
 }
 
 // IsSilent checks the error or any error in the chain, is marked silent.
 // Silent errors should not need to be logged at all.
 func IsSilent(err error) bool {
-	e := As(err)
-	if e == nil {
+	type SilencedError interface {
+		GetSilent() bool
+	}
+	if err == nil {
 		return false
 	}
-	if e.silent {
+	// The err may wrap another SilencedError who's value may be set to true. Therefore, we only exit if the
+	// silent flag is true, otherwise we keep traversing the error chain
+	silenterr, ok := err.(SilencedError)
+	if ok && silenterr.GetSilent() {
 		return true
 	}
-	return IsSilent(e.Unwrap())
+
+	return IsSilent(errors.Unwrap(err))
 }
 
 // ExtractAuxiliary extracts a superset of auxiliary data from all errors in the chain.

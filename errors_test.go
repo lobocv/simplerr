@@ -12,6 +12,10 @@ type CustomError struct {
 	error
 }
 
+type EmbeddedSimpleErr struct {
+	*SimpleError
+}
+
 type TestSuite struct {
 	suite.Suite
 }
@@ -177,6 +181,18 @@ func (s *TestSuite) TestBenign() {
 		s.True(isBenign)
 	})
 
+	s.Run("check embedding DOES NOT hide the benign", func() {
+		serr := EmbeddedSimpleErr{SimpleError: Wrapf(original, "wrapped").Benign()}
+		_, isBenign := IsBenign(serr)
+		s.True(isBenign)
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", serr)
+		_, isBenign = IsBenign(wrappedstdlib)
+		s.True(isBenign)
+		wrappedSerr := Wrapf(wrappedstdlib, "again wrapped")
+		_, isBenign = IsBenign(wrappedSerr)
+		s.True(isBenign)
+	})
+
 	s.Run("check wrapping DOES NOT hide the benign", func() {
 		serr := Wrapf(original, "wrapped").Benign()
 		wrapped := Wrapf(serr, "wrapped")
@@ -216,6 +232,15 @@ func (s *TestSuite) TestSilent() {
 		serr := Wrapf(original, "wrapped").Silence()
 		s.True(serr.GetSilent())
 		s.True(IsSilent(serr))
+	})
+
+	s.Run("check embedding DOES NOT hide the silence", func() {
+		serr := EmbeddedSimpleErr{SimpleError: Wrapf(original, "wrapped").Silence()}
+		s.True(IsSilent(serr))
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", serr)
+		s.True(IsSilent(wrappedstdlib))
+		wrappedSerr := Wrapf(wrappedstdlib, "again wrapped")
+		s.True(IsSilent(wrappedSerr))
 	})
 
 	s.Run("check wrapping DOES NOT hide the silence", func() {
