@@ -25,6 +25,7 @@ The `SimpleError` allows you to easily:
 - Automatically capture stack traces at the point the error is raised.
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
 - Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
+- Embeddable so you can extend functionality or write your own convenience wrappers
 
 # Error Codes
 
