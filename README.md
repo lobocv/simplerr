@@ -124,7 +124,7 @@ serr := simplerr.New("user with that email already exists").
 	Attr(NotRetryable, true)
 
 // Get the value of the NotRetryable attribute
-isRetryable := simplerr.GetAttribute(err, NotRetryable).(bool)
+isRetryable, ok := simplerr.GetAttribute(err, NotRetryable).(bool)
 // isRetryable == true
 ```
 
