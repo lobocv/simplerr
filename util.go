@@ -112,16 +112,23 @@ func IsSilent(err error) bool {
 // ExtractAuxiliary extracts a superset of auxiliary data from all errors in the chain.
 // Wrapper error auxiliary data take precedent over later errors.
 func ExtractAuxiliary(err error) map[string]interface{} {
+	type AuxHolder interface {
+		GetAuxiliary() map[string]interface{}
+	}
 	if err == nil {
 		return nil
 	}
 	aux := map[string]interface{}{}
-	e := As(err)
+
+	e := err
 	for e != nil {
-		for k, v := range e.GetAuxiliary() {
-			aux[k] = v
+		if auxHolder, ok := e.(AuxHolder); ok {
+			for k, v := range auxHolder.GetAuxiliary() {
+				aux[k] = v
+			}
 		}
-		e = As(e.Unwrap())
+
+		e = errors.Unwrap(e)
 	}
 
 	return aux

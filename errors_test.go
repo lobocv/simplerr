@@ -306,10 +306,18 @@ func (s *TestSuite) TestAuxiliaryFields() {
 
 	s.Equal(expected, serr.GetAuxiliary())
 
-	s.Run("extract all aux from wrapped errors", func() {
+	s.Run("extract all aux from wrapped and embedded errors", func() {
 		wrapped := Wrap(serr).Aux("name", "Calvin")
 		expected["name"] = "Calvin"
-		s.Equal(expected, ExtractAuxiliary(wrapped))
+
+		embeddedErr := EmbeddedSimpleErr{SimpleError: wrapped}
+		_ = embeddedErr.Aux("country", "Canada")
+		expected["country"] = "Canada"
+
+		wrapped2 := Wrap(embeddedErr).Aux("province", "Ontario")
+		expected["province"] = "Ontario"
+
+		s.Equal(expected, ExtractAuxiliary(wrapped2))
 	})
 
 	s.Run("extract all aux from nil error", func() {
