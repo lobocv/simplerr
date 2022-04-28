@@ -108,6 +108,19 @@ func (e *SimpleError) GetAuxiliary() map[string]interface{} {
 	return e.auxiliary
 }
 
+// GetAttribute gets an attribute attached to this specific SimpleError. It does NOT traverse the error chain.
+// This can be used to define attributes on the error that do not have first-class support
+// with simplerr. Much like keys in the `context` package, the `key` should be a custom type so it does
+// not have naming collisions with other values.
+func (e *SimpleError) GetAttribute(key interface{}) (interface{}, bool) {
+	for _, attr := range e.attr {
+		if attr.Key == key {
+			return attr.Value, true
+		}
+	}
+	return nil, false
+}
+
 // Aux attaches auxiliary informational data to the error as key value pairs.
 // All keys must be of type `string` and have a value. Keys without values are ignored.
 // This auxiliary data can be retrieved by using `ExtractAuxiliary()` and attached to structured loggers.

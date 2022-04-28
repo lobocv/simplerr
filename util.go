@@ -17,7 +17,8 @@ func Wrapf(err error, msg string, a ...interface{}) *SimpleError {
 	return &SimpleError{parent: err, msg: msg, stackTrace: stackTrace(3)}
 }
 
-// As attempts to find a SimpleError in the chain of errors, similar to errors.As()
+// As attempts to find a SimpleError in the chain of errors, similar to errors.As().
+// Note that this will NOT match structs which embed a *SimpleError.
 func As(err error) *SimpleError {
 	var expecterErr *SimpleError
 	if ok := errors.As(err, &expecterErr); !ok {
@@ -29,72 +30,106 @@ func As(err error) *SimpleError {
 // HasErrorCode checks the error code of an error if it is a SimpleError{}.
 // nil errors or errors that are not SimplErrors return false.
 func HasErrorCode(err error, code Code) bool {
-	if e := As(err); e != nil {
-		if e.code == code {
-			return true
-		}
-		return HasErrorCode(e.parent, code)
+	type CodedError interface {
+		GetCode() Code
 	}
-	return false
+	if err == nil {
+		return false
+	}
+	// The err may wrap another CodedError who's value may be set. Therefore, we only exit if we find
+	// a matching code, otherwise we traverse the remaining error chain
+	codedErr, ok := err.(CodedError)
+	if ok && codedErr.GetCode() == code {
+		return true
+	}
+
+	return HasErrorCode(errors.Unwrap(err), code)
 }
 
 // HasErrorCodes looks for the specified error codes in the chain of errors.
 // It returns the first code in the list that is found in the chain and a boolean for whether
 // anything was found.
 func HasErrorCodes(err error, codes ...Code) (Code, bool) {
-	if e := As(err); e != nil {
-		for _, c := range codes {
-			if c == e.code {
-				return c, true
-			}
-		}
-
-		return HasErrorCodes(e.parent, codes...)
+	type CodedError interface {
+		GetCode() Code
 	}
-	return 0, false
+	if err == nil {
+		return 0, false
+	}
+	for _, code := range codes {
+		// The err may wrap another CodedError who's value may be set. Therefore, we only exit if we find
+		// a matching code, otherwise we traverse the remaining error chain
+		codedErr, ok := err.(CodedError)
+		if ok && codedErr.GetCode() == code {
+			return code, true
+		}
+	}
+
+	return HasErrorCodes(errors.Unwrap(err), codes...)
 }
 
 // IsBenign checks the error or any error in the chain, is marked as benign.
 // It also returns the reason the error was marked benign. Benign errors should be logged or handled
 // less severely than non-benign errors. For example, you may choose to log benign errors at INFO level,
 // rather than ERROR.
-func IsBenign(err error) (reason string, benign bool) {
-	e := As(err)
-	if e == nil {
+func IsBenign(err error) (string, bool) {
+	type BenignError interface {
+		GetBenignReason() (string, bool)
+	}
+	if err == nil {
 		return "", false
 	}
-	if e.benign {
-		return e.benignReason, e.benign
+	// The err may wrap another BenignError who's value may be set to true. Therefore, we only exit if the
+	// benign flag is true, otherwise we keep traversing the error chain
+	benignErr, ok := err.(BenignError)
+	if ok {
+		if reason, benign := benignErr.GetBenignReason(); benign {
+			return reason, true
+		}
 	}
-	return IsBenign(e.Unwrap())
+
+	return IsBenign(errors.Unwrap(err))
 }
 
 // IsSilent checks the error or any error in the chain, is marked silent.
 // Silent errors should not need to be logged at all.
 func IsSilent(err error) bool {
-	e := As(err)
-	if e == nil {
+	type SilencedError interface {
+		GetSilent() bool
+	}
+	if err == nil {
 		return false
 	}
-	if e.silent {
+	// The err may wrap another SilencedError who's value may be set to true. Therefore, we only exit if the
+	// silent flag is true, otherwise we keep traversing the error chain
+	silenterr, ok := err.(SilencedError)
+	if ok && silenterr.GetSilent() {
 		return true
 	}
-	return IsSilent(e.Unwrap())
+
+	return IsSilent(errors.Unwrap(err))
 }
 
 // ExtractAuxiliary extracts a superset of auxiliary data from all errors in the chain.
 // Wrapper error auxiliary data take precedent over later errors.
 func ExtractAuxiliary(err error) map[string]interface{} {
+	type AuxHolder interface {
+		GetAuxiliary() map[string]interface{}
+	}
 	if err == nil {
 		return nil
 	}
 	aux := map[string]interface{}{}
-	e := As(err)
+
+	e := err
 	for e != nil {
-		for k, v := range e.GetAuxiliary() {
-			aux[k] = v
+		if auxHolder, ok := e.(AuxHolder); ok {
+			for k, v := range auxHolder.GetAuxiliary() {
+				aux[k] = v
+			}
 		}
-		e = As(e.Unwrap())
+
+		e = errors.Unwrap(e)
 	}
 
 	return aux
@@ -104,19 +139,24 @@ func ExtractAuxiliary(err error) map[string]interface{} {
 // This can be used to define attributes on the error that do not have first-class support
 // with simplerr. Much like keys in the `context` package, the `key` should be a custom type so it does
 // not have naming collisions with other values.
-func GetAttribute(err error, key interface{}) interface{} {
-	if err == nil {
-		return nil
+func GetAttribute(err error, key interface{}) (interface{}, bool) {
+	type AttrHolder interface {
+		GetAttribute(key interface{}) (interface{}, bool)
 	}
-	e := As(err)
+	if err == nil {
+		return nil, false
+	}
+	e := err
 	for e != nil {
-		for _, attr := range e.attr {
-			if attr.Key == key {
-				return attr.Value
+		var attr interface{}
+		if attrHolder, ok := e.(AttrHolder); ok {
+			if attr, ok = attrHolder.GetAttribute(key); ok {
+				return attr, true
 			}
 		}
-		e = As(e.Unwrap())
+
+		e = errors.Unwrap(e)
 	}
 
-	return nil
+	return nil, false
 }

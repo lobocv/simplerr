@@ -12,6 +12,10 @@ type CustomError struct {
 	error
 }
 
+type EmbeddedSimpleErr struct {
+	*SimpleError
+}
+
 type TestSuite struct {
 	suite.Suite
 }
@@ -84,49 +88,75 @@ func (s *TestSuite) TestMutations() {
 	})
 }
 
-func (s *TestSuite) TestHasErrorCode() {
+func (s *TestSuite) TestHasErrorCodes() {
 
 	original := New("something").Code(CodeMissingParameter)
 	wrapped := Wrap(original).Code(CodeNotFound)
 	wrapped2 := Wrap(wrapped).Code(CodeUnknown)
 
 	s.Run("look for first code", func() {
+		s.True(HasErrorCode(wrapped, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped, CodeNotFound, CodeMissingParameter)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
 	s.Run("look for second code", func() {
+		s.True(HasErrorCode(wrapped, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped, CodeMissingParameter, CodeNotFound)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
 	s.Run("look for wrapped code", func() {
+		s.True(HasErrorCode(wrapped2, CodeMissingParameter))
+
 		c, ok := HasErrorCodes(wrapped2, CodeMissingParameter)
 		s.True(ok)
 		s.Equal(c, CodeMissingParameter)
 	})
 
 	s.Run("look for other wrapped code", func() {
+		s.True(HasErrorCode(wrapped2, CodeNotFound))
+
 		c, ok := HasErrorCodes(wrapped2, CodeNotFound)
 		s.True(ok)
 		s.Equal(c, CodeNotFound)
 	})
 
+	s.Run("look for other embedded error code", func() {
+		embeddedErr := EmbeddedSimpleErr{SimpleError: wrapped}
+
+		s.True(HasErrorCode(embeddedErr, CodeNotFound))
+
+		c, ok := HasErrorCodes(embeddedErr, CodeNotFound)
+		s.True(ok)
+		s.Equal(c, CodeNotFound)
+	})
+
 	s.Run("look for non existing code", func() {
+		s.False(HasErrorCode(wrapped, CodePermissionDenied))
+
 		c, ok := HasErrorCodes(wrapped2, CodePermissionDenied)
 		s.False(ok)
 		s.Zero(c)
 	})
 
 	s.Run("look for code in non-simple error", func() {
-		c, ok := HasErrorCodes(fmt.Errorf("something"), CodeNotFound)
+		err := fmt.Errorf("something")
+
+		s.False(HasErrorCode(err, CodeNotFound))
+
+		c, ok := HasErrorCodes(err, CodeNotFound)
 		s.False(ok)
 		s.Zero(c)
 	})
 
 	s.Run("look at nil error", func() {
+		s.False(HasErrorCode(nil, CodeNotFound))
+
 		c, ok := HasErrorCodes(nil, CodeNotFound)
 		s.False(ok)
 		s.Zero(c)
@@ -177,6 +207,18 @@ func (s *TestSuite) TestBenign() {
 		s.True(isBenign)
 	})
 
+	s.Run("check embedding DOES NOT hide the benign", func() {
+		serr := EmbeddedSimpleErr{SimpleError: Wrapf(original, "wrapped").Benign()}
+		_, isBenign := IsBenign(serr)
+		s.True(isBenign)
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", serr)
+		_, isBenign = IsBenign(wrappedstdlib)
+		s.True(isBenign)
+		wrappedSerr := Wrapf(wrappedstdlib, "again wrapped")
+		_, isBenign = IsBenign(wrappedSerr)
+		s.True(isBenign)
+	})
+
 	s.Run("check wrapping DOES NOT hide the benign", func() {
 		serr := Wrapf(original, "wrapped").Benign()
 		wrapped := Wrapf(serr, "wrapped")
@@ -218,6 +260,15 @@ func (s *TestSuite) TestSilent() {
 		s.True(IsSilent(serr))
 	})
 
+	s.Run("check embedding DOES NOT hide the silence", func() {
+		serr := EmbeddedSimpleErr{SimpleError: Wrapf(original, "wrapped").Silence()}
+		s.True(IsSilent(serr))
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", serr)
+		s.True(IsSilent(wrappedstdlib))
+		wrappedSerr := Wrapf(wrappedstdlib, "again wrapped")
+		s.True(IsSilent(wrappedSerr))
+	})
+
 	s.Run("check wrapping DOES NOT hide the silence", func() {
 		serr := Wrapf(original, "wrapped").Silence()
 		wrapped := Wrapf(serr, "wrapped")
@@ -255,10 +306,18 @@ func (s *TestSuite) TestAuxiliaryFields() {
 
 	s.Equal(expected, serr.GetAuxiliary())
 
-	s.Run("extract all aux from wrapped errors", func() {
+	s.Run("extract all aux from wrapped and embedded errors", func() {
 		wrapped := Wrap(serr).Aux("name", "Calvin")
 		expected["name"] = "Calvin"
-		s.Equal(expected, ExtractAuxiliary(wrapped))
+
+		embeddedErr := EmbeddedSimpleErr{SimpleError: wrapped}
+		_ = embeddedErr.Aux("country", "Canada")
+		expected["country"] = "Canada"
+
+		wrapped2 := Wrap(embeddedErr).Aux("province", "Ontario")
+		expected["province"] = "Ontario"
+
+		s.Equal(expected, ExtractAuxiliary(wrapped2))
 	})
 
 	s.Run("extract all aux from nil error", func() {
@@ -271,32 +330,54 @@ func (s *TestSuite) TestAttributes() {
 
 	s.Run("single attribute", func() {
 		serr := New("something").Attr(1, "one")
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v)
 	})
 
 	s.Run("non-existing attribute", func() {
 		serr := New("something")
-		v := GetAttribute(serr, "does-not-exist")
+		v, exists := GetAttribute(serr, "does-not-exist")
+		s.False(exists)
 		s.Nil(v)
 	})
 
 	s.Run("nil error", func() {
-		v := GetAttribute(nil, "does-not-exist")
+		v, exists := GetAttribute(nil, "does-not-exist")
+		s.False(exists)
 		s.Nil(v)
 	})
 
 	s.Run("single attribute on a wrapped error", func() {
 		serr := Wrap(New("something").Attr(1, "one"))
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v)
+	})
+
+	s.Run("single attribute on an embedded error", func() {
+		embeddedErr := EmbeddedSimpleErr{SimpleError: Wrap(New("something").Attr(1, "one"))}
+		_ = embeddedErr.Attr(2, "two")
+
+		v, exists := GetAttribute(embeddedErr, 1)
+		s.True(exists)
+		s.Equal("one", v)
+
+		v, exists = GetAttribute(embeddedErr, 2)
+		s.True(exists)
+		s.Equal("two", v)
+
+		v, exists = GetAttribute(embeddedErr, "does not exist")
+		s.False(exists)
+		s.Nil(v)
 	})
 
 	s.Run("duplicate attribute with same key type and value", func() {
 		serr := New("something").
 			Attr(1, "one").
 			Attr(1, "two")
-		v := GetAttribute(serr, 1)
+		v, exists := GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("one", v, "first attribute does not get overwritten")
 	})
 
@@ -309,10 +390,12 @@ func (s *TestSuite) TestAttributes() {
 			Attr(attrKey, "one").
 			Attr(1, "two")
 
-		v := GetAttribute(serr, attrKey)
+		v, exists := GetAttribute(serr, attrKey)
+		s.True(exists)
 		s.Equal("one", v)
 
-		v = GetAttribute(serr, 1)
+		v, exists = GetAttribute(serr, 1)
+		s.True(exists)
 		s.Equal("two", v)
 	})
 
