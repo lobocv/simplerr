@@ -1,9 +1,11 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/lobocv/simplerr.svg)](https://pkg.go.dev/github.com/lobocv/simplerr)
+[![Github tag](https://badgen.net/github/tag/lobocv/simplerr)](https://github.com/lobocv/simplerr/tags)
+![Go version](https://img.shields.io/github/go-mod/go-version/lobocv/simplerr)
+![Build Status](https://github.com/lobocv/simplerr/actions/workflows/build.yaml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/lobocv/simplerr)](https://goreportcard.com/report/github.com/lobocv/simplerr)
 [<img src="https://img.shields.io/github/license/lobocv/simplerr">](https://img.shields.io/github/license/lobocv/simplerr)
 <a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-100%25-brightgreen.svg?longCache=true&style=flat)</a>
-![Build Status](https://github.com/lobocv/simplerr/actions/workflows/build.yaml/badge.svg)
 ![Lint Status](https://github.com/lobocv/simplerr/actions/workflows/golangci-lint.yaml/badge.svg)
-[![Go Reference](https://pkg.go.dev/badge/github.com/lobocv/simplerr.svg)](https://pkg.go.dev/github.com/lobocv/simplerr)
 
 # Simplerr
 <p align="center"><img src="gopher.png" width="250"></p>
@@ -13,6 +15,8 @@ implementation, the [SimpleError](https://pkg.go.dev/github.com/lobocv/simplerr#
 be convenient and highly configurable. The main goals of Simplerr is to reduce boilerplate and make error handling
 and debugging easier.
 
+Check out the [blog post](https://blog.lobocv.com/posts/richer_golang_errors/) introducing why simplerr
+was created.
 
 # Features
 
@@ -26,6 +30,11 @@ The `SimpleError` allows you to easily:
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
 - Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
 - Embeddable so you can extend functionality or write your own convenience wrappers
+
+# Installation
+```
+go get -u github.com/lobocv/simplerr
+```
 
 # Error Codes
 
