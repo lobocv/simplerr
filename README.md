@@ -15,7 +15,7 @@ implementation, the [SimpleError](https://pkg.go.dev/github.com/lobocv/simplerr#
 be convenient and highly configurable. The main goals of Simplerr is to reduce boilerplate and make error handling
 and debugging easier.
 
-Check out the [blog post](https://blog.lobocv.com/posts/richer_golang_errors/) introducing why simplerr
+Check out the [blog post](https://blog.lobocv.com/posts/richer_golang_errors/?utm_source=github&utm_medium=simplerr&utm_id=blog) introducing why simplerr
 was created.
 
 # Features
