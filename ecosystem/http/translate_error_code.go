@@ -1,8 +1,9 @@
 package simplehttp
 
 import (
-	"github.com/lobocv/simplerr"
 	"net/http"
+
+	"github.com/lobocv/simplerr"
 )
 
 // HTTPStatus is the HTTP status code
@@ -10,7 +11,7 @@ type HTTPStatus = int
 
 var mapping map[simplerr.Code]HTTPStatus
 var simplerrCodes []simplerr.Code
-var defaultErrorCode = http.StatusInternalServerError
+var defaultErrorStatus = http.StatusInternalServerError
 
 // DefaultMapping returns the default mapping of SimpleError codes to HTTP status codes
 func DefaultMapping() map[simplerr.Code]HTTPStatus {
@@ -41,36 +42,55 @@ func SetMapping(m map[simplerr.Code]HTTPStatus) {
 	}
 }
 
-// SetDefaultErrorCode changes the default HTTP status code for when a translation could not be found.
+// SetDefaultErrorStatus changes the default HTTP status code for when a translation could not be found.
 // The default status code is 500.
-func SetDefaultErrorCode(code int) {
-	defaultErrorCode = code
+func SetDefaultErrorStatus(code int) {
+	defaultErrorStatus = code
 }
 
 func init() {
 	SetMapping(DefaultMapping())
 }
 
-// SetStatus sets the http.Response status from the error code in the provided error, if it is a SimpleError
-// If error is nil or not a SimpleError, the status will not be set.
-func SetStatus(r http.ResponseWriter, err error) {
+// SetStatus sets the http.Response status from the error code in the provided error.
+// It returns the HTTPStatus that was written
+// If the error contains a SimpleError, then the status is determined by the mapping.
+// If the error is not a SimpleError then the default error status code will be set.
+// If the error is nil, then no status will be set.
+func SetStatus(r http.ResponseWriter, err error) HTTPStatus {
 	if err == nil {
-		return
+		return 0
 	}
-	e := simplerr.As(err)
-	if e == nil {
-		r.WriteHeader(defaultErrorCode)
-		return
-	}
-
-	// Check if the error has any of the codes in it's chain
-	// If we cant find any matches, set it to the default error code
-	code, ok := simplerr.HasErrorCodes(e, simplerrCodes...)
+	httpStatus, ok := GetStatus(err)
 	if !ok {
-		r.WriteHeader(defaultErrorCode)
-		return
+		httpStatus = defaultErrorStatus
+	}
+	r.WriteHeader(httpStatus)
+	return httpStatus
+}
+
+// GetStatus returns the HTTP status that the error maps to if the provided error is a SimpleError.
+// If a mapping could not be found or the error is nil, then the boolean second argument is returned as false
+func GetStatus(err error) (status HTTPStatus, found bool) {
+	if err == nil {
+		return 0, false
 	}
 
-	// Get the HTTP code, this lookup should never fail
-	r.WriteHeader(mapping[code])
+	// Check if the error is a SimpleError
+	serr := simplerr.As(err)
+	if serr == nil {
+		return 0, false
+	}
+
+	// Check if the error has any of the codes in its chain of errors
+	code, ok := simplerr.HasErrorCodes(serr, simplerrCodes...)
+	if !ok {
+		return 0, false
+	}
+
+	// Get the HTTP code, this lookup should never fail because the every item in simplerrCodes will have an
+	// entry in the mapping
+	httpCode := mapping[code]
+
+	return httpCode, true
 }
