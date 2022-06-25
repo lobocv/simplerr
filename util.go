@@ -7,14 +7,14 @@ import (
 
 // Wrap wraps the error in a SimpleError. It defaults the error code to CodeUnknown.
 func Wrap(err error) *SimpleError {
-	return &SimpleError{parent: err, stackTrace: stackTrace(3)}
+	return &SimpleError{parent: err, rawStackFrames: rawStackFrames(3)}
 }
 
 // Wrapf returns a new SimpleError by wrapping an error with a formatted message string.
 // It defaults the error code to CodeUnknown
 func Wrapf(err error, msg string, a ...interface{}) *SimpleError {
 	msg = fmt.Sprintf(msg, a...)
-	return &SimpleError{parent: err, msg: msg, stackTrace: stackTrace(3)}
+	return &SimpleError{parent: err, msg: msg, rawStackFrames: rawStackFrames(3)}
 }
 
 // As attempts to find a SimpleError in the chain of errors, similar to errors.As().

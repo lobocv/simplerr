@@ -3,9 +3,10 @@ package simplerr
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type CustomError struct {
@@ -22,6 +23,8 @@ type TestSuite struct {
 
 func (s *TestSuite) checkCall(c Call, funcName string) {
 	s.True(strings.HasSuffix(c.Func, funcName))
+	s.Equal(c.FuncName, funcName)
+	s.Equal(c.Package, "github.com/lobocv/simplerr")
 }
 
 func TestErrors(t *testing.T) {
@@ -499,6 +502,10 @@ func (s *TestSuite) TestStackTrace() {
 	s.checkCall(stack[1], "Third")
 	s.checkCall(stack[2], "Second")
 	s.checkCall(stack[3], "First")
+
+	// There's not really a great way to test the raw pointers. As long as this isn't an empty
+	// list, we should be fine because StackTrace() is already tested, and it uses StackFrames()
+	s.NotEmpty(e.StackFrames())
 }
 
 func Fourth() *SimpleError {
