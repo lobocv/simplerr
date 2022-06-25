@@ -31,12 +31,13 @@ type SimpleError struct {
 	// attr is a list of custom attributes attached the error
 	attr []attribute
 	// stackTrace is the call stack trace for the error
-	stackTrace []Call
+	rawStackFrames []uintptr
 }
 
 // New creates a new SimpleError from a formatted string
 func New(_fmt string, args ...interface{}) *SimpleError {
-	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown, stackTrace: stackTrace(3)}
+	rawFrames := rawStackFrames(3)
+	return &SimpleError{msg: fmt.Sprintf(_fmt, args...), code: CodeUnknown, rawStackFrames: rawFrames}
 }
 
 // Error satisfies the `error` interface. It uses the `simplerr.Formatter` to generate an error string.
@@ -172,7 +173,13 @@ func (e *SimpleError) GetDescription() string {
 
 // StackTrace returns the stack trace at the point at which the error was raised.
 func (e *SimpleError) StackTrace() []Call {
-	return e.stackTrace
+	return stackTrace(e.rawStackFrames)
+}
+
+// StackFrames returns a slice of pointers to program counters
+// This method is primarily used to better integrate with sentry stack trace extraction
+func (e *SimpleError) StackFrames() []uintptr {
+	return e.rawStackFrames
 }
 
 // Unwrap implement the interface required for error unwrapping. It returns the underlying (wrapped) error.
