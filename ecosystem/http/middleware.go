@@ -30,7 +30,7 @@ func ApplyMiddleware(h HandlerFunc, mw ...Middleware) HandlerFunc {
 	return h
 }
 
-// middlewareAdapter adapts the http.Handler into Handler
+// middlewareAdapter adapts the http.Handler into a Handler
 type middlewareAdapter struct {
 	h http.HandlerFunc
 }
@@ -46,7 +46,7 @@ func MiddlewareAdapter(mw func(handler http.Handler) http.Handler) Middleware {
 
 	return func(handler Handler) Handler {
 
-		// Get the http.HandlerFunc from the Handler by using a thin wrapper that ignores the error
+		// Create a http.HandlerFunc from the Handler by using a thin wrapper that ignores the error
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_ = handler.ServeHTTP(w, r)
 		})
@@ -57,6 +57,37 @@ func MiddlewareAdapter(mw func(handler http.Handler) http.Handler) Middleware {
 		// Use an adapter over the http.Handler to make it a Handler
 		return middlewareAdapter{h: hh.ServeHTTP}
 
+	}
+
+}
+
+// middlewareReverseAdapter adapts the Handler into a http.Handler
+type middlewareReverseAdapter struct {
+	h HandlerFunc
+}
+
+// ServeHTTP satisfies the Handler interface but disregards returning any errors because it uses the http.Handler
+func (a middlewareReverseAdapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	_ = a.h.ServeHTTP(writer, request)
+}
+
+// MiddlewareReverseAdapter is an adapter for turning simplehttp compatible middleware to standard library middleware
+// This is useful for interfacing with other libraries like gorilla.mux which expect standard library middleware
+func MiddlewareReverseAdapter(mw Middleware) func(handler http.Handler) http.Handler {
+
+	return func(handler http.Handler) http.Handler {
+
+		// Create a HandlerFunc from the http.Handler by using a thin wrapper that changes the signature
+		h := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+			handler.ServeHTTP(w, r)
+			return nil
+		})
+
+		// Implement the middleware
+		hh := mw(h)
+
+		// Use an adapter over the Handler to make it a http.Handler
+		return middlewareReverseAdapter{h: hh.ServeHTTP}
 	}
 
 }

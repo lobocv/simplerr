@@ -197,6 +197,24 @@ func TestMiddlewareAdapter(t *testing.T) {
 		ensureHeaderOrder(t, rec, req)
 	})
 
+	t.Run("reverse adapter", func(t *testing.T) {
+		// Convert the simplehttp middlewares to a standard lib middleware
+		stdlibMiddlewarePre := MiddlewareReverseAdapter(PreCallMiddleware)
+		stdlibMiddlewarePost := MiddlewareReverseAdapter(PostCallMiddleware)
+
+		// Convert the simplehttp handler func to a standard lib handler
+		stdlibHandler := http.HandlerFunc(NewHandlerAdapter(HandlerFunc(ep)).ServeHTTP)
+
+		// Apply the middleware
+		ep := stdlibMiddlewarePre(stdlibHandler)
+		ep = stdlibMiddlewarePost(ep)
+
+		rec := httptest.NewRecorder()
+		ep.ServeHTTP(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code)
+		ensureHeaderOrder(t, rec, req)
+	})
+
 	t.Run("with pre-error", func(t *testing.T) {
 		ep := ApplyMiddleware(ep, ErrorCausingMiddleware(true), MiddlewareAdapter(StandardHTTPMiddleware))
 		rec := httptest.NewRecorder()
