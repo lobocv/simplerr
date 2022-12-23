@@ -206,8 +206,8 @@ func TestMiddlewareAdapter(t *testing.T) {
 		stdlibHandler := http.HandlerFunc(NewHandlerAdapter(HandlerFunc(ep)).ServeHTTP)
 
 		// Apply the middleware
-		ep := stdlibMiddlewarePre(stdlibHandler)
-		ep = stdlibMiddlewarePost(ep)
+		ep := stdlibMiddlewarePost(stdlibHandler)
+		ep = stdlibMiddlewarePre(ep)
 
 		rec := httptest.NewRecorder()
 		ep.ServeHTTP(rec, req)
@@ -238,6 +238,68 @@ func TestMiddlewareAdapter(t *testing.T) {
 		data, err := io.ReadAll(rec.Result().Body)
 		require.NoError(t, err)
 		require.Equal(t, []byte("done"), data)
+	})
+
+}
+
+func TestMiddlewareReverseAdapter(t *testing.T) {
+
+	ep := func(writer http.ResponseWriter, request *http.Request) error {
+		request.Header.Add("call", timestamp())
+
+		n, err := writer.Write([]byte("done"))
+		require.NoError(t, err)
+		require.Greater(t, n, 0)
+
+		return nil
+	}
+
+	req, err := http.NewRequest("GET", "url", nil)
+	require.NoError(t, err)
+
+	t.Run("pre error", func(t *testing.T) {
+		// Convert the simplehttp middlewares to a standard lib middleware
+		stdlibMiddlewarePre := MiddlewareReverseAdapter(ErrorCausingMiddleware(true))
+		stdlibMiddlewarePost := MiddlewareReverseAdapter(PostCallMiddleware)
+
+		// Convert the simplehttp handler func to a standard lib handler
+		stdlibHandler := http.HandlerFunc(NewHandlerAdapter(HandlerFunc(ep)).ServeHTTP)
+
+		// Apply the middleware
+		ep := stdlibMiddlewarePost(stdlibHandler)
+		ep = stdlibMiddlewarePre(ep)
+
+		rec := httptest.NewRecorder()
+		ep.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusBadRequest, rec.Result().StatusCode)
+		// There should be no response written because the endpoint should not have been called
+		_, err = rec.Body.ReadByte()
+		require.True(t, err == io.EOF)
+
+		// The post call middleware should not be called
+		h := rec.Header().Get("post-call-middleware")
+		require.Empty(t, h, "post middleware should not have been called")
+	})
+
+	t.Run("post error", func(t *testing.T) {
+
+		// Convert the simplehttp middlewares to a standard lib middleware
+		stdlibMiddlewarePre := MiddlewareReverseAdapter(ErrorCausingMiddleware(false))
+
+		// Convert the simplehttp handler func to a standard lib handler
+		stdlibHandler := http.HandlerFunc(NewHandlerAdapter(HandlerFunc(ep)).ServeHTTP)
+
+		// Apply the middleware
+		ep := stdlibMiddlewarePre(stdlibHandler)
+
+		rec := httptest.NewRecorder()
+		ep.ServeHTTP(rec, req)
+
+		// Because the handler func has been called, the status gets written and we can only
+		// write the status once, so we cannot change the status from 200 even if we wanted.
+		require.Equal(t, http.StatusOK, rec.Result().StatusCode)
+
 	})
 
 }

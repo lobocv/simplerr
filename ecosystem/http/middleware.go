@@ -66,9 +66,13 @@ type middlewareReverseAdapter struct {
 	h HandlerFunc
 }
 
-// ServeHTTP satisfies the Handler interface but disregards returning any errors because it uses the http.Handler
-func (a middlewareReverseAdapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	_ = a.h.ServeHTTP(writer, request)
+// ServeHTTP satisfies the Handler interface, calls the error handler but disregards returning any errors because
+// it needs to satisfy the http.Handler interface
+func (a middlewareReverseAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := a.h.ServeHTTP(w, r)
+	if err != nil {
+		DefaultErrorHandler(w, r, err)
+	}
 }
 
 // MiddlewareReverseAdapter is an adapter for turning simplehttp compatible middleware to standard library middleware
