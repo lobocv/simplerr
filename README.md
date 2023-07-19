@@ -29,6 +29,7 @@ The `SimpleError` allows you to easily:
 - Automatically capture stack traces at the point the error is raised.
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
 - Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
+- Mark errors as [`not retry-able`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Retry-able) so retry mechanisms can not retry non-transient errors. 
 - Embeddable so you can extend functionality or write your own convenience wrappers
 
 # Installation
@@ -215,6 +216,14 @@ Similar to benign errors, an error can be marked as silent using the [`Silence()
 mutator to indicate to logging middleware to not log this error at all. This is useful in situations where a very high 
 amount of benign errors are flooding the logs. To detect silent errors, use the [`IsSilent()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsSilent) function which looks for 
 any silent errors in the chain of errors.
+
+### Retry-able / Retriable Errors
+
+You can mark an error as "not retriable" using the [`NotRetriable()`]((https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Retriable))
+mutator. When an error is marked as not retriable then retry mechanisms handling the error should not treat the error as transient and should
+not attempt to retry the operation which caused the error.
+
+**By default, all non-errors are assumed to be retriable unless explicitly marked otherwise**
 
 ### Changing Error Formatting
 

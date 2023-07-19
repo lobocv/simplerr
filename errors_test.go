@@ -280,10 +280,61 @@ func (s *TestSuite) TestSilent() {
 		s.True(IsSilent(wrappedstdlib))
 	})
 
-	s.Run("check opaquing DOES hide the benign", func() {
-		serr := Wrapf(original, "wrapped").Benign()
+	s.Run("check opaquing DOES hide the silence", func() {
+		serr := Wrapf(original, "wrapped").Silence()
 		opaque := fmt.Errorf("stdlib wrap %s", serr)
 		s.False(IsSilent(opaque))
+	})
+}
+
+func (s *TestSuite) TestRetriable() {
+	original := fmt.Errorf("test")
+
+	s.Run("stdlib are seen as retriable by default", func() {
+		retriable := IsRetriable(original)
+		s.True(retriable)
+	})
+
+	s.Run("nil errors are not retriable", func() {
+		var err error
+		s.False(IsRetriable(err))
+	})
+
+	s.Run("wrapped errors are set as retriable by default", func() {
+		serr := Wrapf(original, "wrapped")
+		s.True(serr.GetRetriable())
+		s.True(IsRetriable(serr))
+	})
+
+	s.Run("using Retriable to set retriable", func() {
+		serr := Wrapf(original, "wrapped").NotRetriable()
+		s.False(serr.GetRetriable())
+		s.False(IsRetriable(serr))
+	})
+
+	s.Run("check embedding DOES NOT hide the retriable status", func() {
+		serr := EmbeddedSimpleErr{SimpleError: Wrapf(original, "wrapped")}
+		s.True(IsRetriable(serr))
+		_ = serr.NotRetriable()
+		s.False(IsRetriable(serr))
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", serr)
+		s.False(IsRetriable(wrappedstdlib))
+		wrappedSerr := Wrapf(wrappedstdlib, "again wrapped")
+		s.False(IsRetriable(wrappedSerr))
+	})
+
+	s.Run("check wrapping DOES NOT hide the retriable status", func() {
+		serr := Wrapf(original, "wrapped").NotRetriable()
+		wrapped := Wrapf(serr, "wrapped")
+		s.False(IsRetriable(wrapped))
+		wrappedstdlib := fmt.Errorf("stdlib wrap %w", wrapped)
+		s.False(IsRetriable(wrappedstdlib))
+	})
+
+	s.Run("check opaquing DOES hide the retriable status", func() {
+		serr := Wrapf(original, "wrapped").NotRetriable()
+		opaque := fmt.Errorf("stdlib wrap %s", serr)
+		s.True(IsRetriable(opaque))
 	})
 }
 
