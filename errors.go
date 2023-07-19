@@ -26,9 +26,8 @@ type SimpleError struct {
 	benign bool
 	// benignReason is the reason this error was marked as "benign"
 	benignReason string
-	// notRetriable is a flag indicating that this error is not transient and that the user should not retry the operation
-	// expecting a different result
-	notRetriable bool
+	// retriable is a flag indicating that this error is transient and that the user should retry the operation
+	retriable bool
 	// auxiliary are auxiliary informational fields that can be attached to the error
 	auxiliary map[string]interface{}
 	// attr is a list of custom attributes attached the error
@@ -109,12 +108,12 @@ func (e *SimpleError) Silence() *SimpleError {
 // GetRetriable returns a flag that signals that the operation which created this error is transient and that the
 // user should retry the operation in hopes of it succeeding.
 func (e *SimpleError) GetRetriable() bool {
-	return !e.notRetriable
+	return e.retriable
 }
 
-// NotRetriable sets the error as not retriable.
-func (e *SimpleError) NotRetriable() *SimpleError {
-	e.notRetriable = true
+// Retriable sets the error as retriable.
+func (e *SimpleError) Retriable() *SimpleError {
+	e.retriable = true
 	return e
 }
 
