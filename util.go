@@ -110,6 +110,37 @@ func IsSilent(err error) bool {
 	return IsSilent(errors.Unwrap(err))
 }
 
+// IsRetriable checks the error or any error in the chain is retriable, meaning the caller should retry the operation
+// which caused this error in hopes of it succeeding.
+// Errors are assumed retriable by default unless an error in the chain says otherwise. A single error in the chain
+// that is not retriable will make the entire error not retriable.
+func IsRetriable(err error) bool {
+	type RetriableError interface {
+		GetRetriable() bool
+	}
+
+	// If there is no error, then it is not retriable
+	if err == nil {
+		return false
+	}
+
+	// The error may wrap another RetriableError which may not be retriable. Therefore, we only exit if the
+	// error is not retriable, otherwise we keep traversing the error chain
+	retriableErr, ok := err.(RetriableError)
+	if ok && !retriableErr.GetRetriable() {
+		return false
+	}
+
+	// If there is no underlying error, we have reached the end of the chain without finding any errors saying they are
+	// not retriable. So the default in this case is to say the error is retriable.
+	nextErr := errors.Unwrap(err)
+	if nextErr == nil {
+		return true
+	}
+
+	return IsRetriable(nextErr)
+}
+
 // ExtractAuxiliary extracts a superset of auxiliary data from all errors in the chain.
 // Wrapper error auxiliary data take precedent over later errors.
 func ExtractAuxiliary(err error) map[string]interface{} {
