@@ -29,6 +29,7 @@ The `SimpleError` allows you to easily:
 - Automatically capture stack traces at the point the error is raised.
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
 - Mark errors as [`benign`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Benign) so they can be logged less severely by logging middleware.
+- Mark errors as [`not retry-able`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Retry-able) so retry mechanisms can not retry non-transient errors. 
 - Embeddable so you can extend functionality or write your own convenience wrappers
 
 # Installation
@@ -116,8 +117,7 @@ mutator and can be retrieved using the [`GetAttribute()`](https://pkg.go.dev/git
 the error chain.
 
 It is highly recommended that a custom type be used as the key in order to prevent naming collisions of attributes. 
-The following example defines a `NotRetryable` attribute and attaches it on an error where a unique constraint is violated,
-this indicates that the error should be exempt by any retry mechanism. 
+The following example defines a `RequestID` attribute and attaches it on an error. 
 
 
 ```go
@@ -125,16 +125,17 @@ this indicates that the error should be exempt by any retry mechanism.
 type ErrorAttribute int
 
 // Define a specific key for the attribute
-const NotRetryable = ErrorAttribute(1)
+const RequestID = ErrorAttribute(1)
 
-// Attach the `NotRetryable` attribute on the error
+requestID := "123-456-789"
+// Attach the `RequestID` attribute on the error
 serr := simplerr.New("user with that email already exists").
 	Code(CodeConstraintViolated).
-	Attr(NotRetryable, true)
+	Attr(RequestID, requestID)
 
-// Get the value of the NotRetryable attribute
-isRetryable, ok := simplerr.GetAttribute(err, NotRetryable).(bool)
-// isRetryable == true
+// Get the value of the RequestID attribute
+gotRequestID, ok := simplerr.GetAttribute(err, RequestID).(string)
+// gotRequestID == "123-456-789"
 ```
 
 ## Detecting errors
@@ -215,6 +216,14 @@ Similar to benign errors, an error can be marked as silent using the [`Silence()
 mutator to indicate to logging middleware to not log this error at all. This is useful in situations where a very high 
 amount of benign errors are flooding the logs. To detect silent errors, use the [`IsSilent()`](https://pkg.go.dev/github.com/lobocv/simplerr#IsSilent) function which looks for 
 any silent errors in the chain of errors.
+
+### Retry-able / Retriable Errors
+
+You can mark an error as "not retriable" using the [`NotRetriable()`]((https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Retriable))
+mutator. When an error is marked as not retriable then retry mechanisms handling the error should not treat the error as transient and should
+not attempt to retry the operation which caused the error.
+
+**By default, all non-errors are assumed to be retriable unless explicitly marked otherwise**
 
 ### Changing Error Formatting
 
