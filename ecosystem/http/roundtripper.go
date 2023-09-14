@@ -16,6 +16,7 @@ type roundTripper struct {
 	rt http.RoundTripper
 }
 
+// RoundTrip calls the underlying RoundTripper and converts any 4XX or 5XX series errors to SimpleErrors
 func (s roundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	resp, err := s.rt.RoundTrip(request)
 	if err != nil {

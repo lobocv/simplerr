@@ -243,7 +243,10 @@ simplerr.Formatter = func(e *simplerr.SimpleError) string {
 ## HTTP Status Codes
 
 HTTP status codes can be set automatically by using the [ecosystem/http](https://github.com/lobocv/simplerr/tree/master/ecosystem/http)
-package to translate `simplerr` error codes to HTTP status codes. To do so, you must use the `simplehttp.Handler` or 
+package to translate `simplerr` error codes to HTTP status codes and vice versa.
+
+### Converting SimpleError to HTTP status codes
+To do so, you must use the `simplehttp.Handler` or 
 `simplehttp.HandlerFunc`instead of the ones defined in the `http` package. The only difference between the two is that
 the `simplehttp` ones return an error. 
 Adapters are provided in order to interface with the `http` package. These adapters call `simplehttp.SetStatus()` on the returned
@@ -290,6 +293,15 @@ func main() {
     // ...
 }
 ```
+
+### Converting HTTP status codes to SimpleError
+
+The standard library `http.DefaultTransport` will return all successfully transported request/responses without error.
+However, most applications will react to those responses by looking at the HTTP status code. From the application's point 
+of view, `4XX` and `5XX` series statuses **are errors**.
+
+In order to get your HTTP clients to return `SimpleError` for `4XX` and `5XX` series errors, you can wrap their `http.RoundTripper`
+using `simplehttp.EnableHTTPStatusErrors(rt http.RoundTripper)`.
 
 ## GRPC Status Codes
 
