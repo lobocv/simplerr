@@ -2,6 +2,7 @@ package simplehttp
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/lobocv/simplerr"
 )
@@ -10,8 +11,12 @@ import (
 type HTTPStatus = int
 
 var mapping map[simplerr.Code]HTTPStatus
+var inverseMapping map[HTTPStatus]simplerr.Code
+
 var simplerrCodes []simplerr.Code
 var defaultErrorStatus = http.StatusInternalServerError
+
+var lock = sync.Mutex{}
 
 // DefaultMapping returns the default mapping of SimpleError codes to HTTP status codes
 func DefaultMapping() map[simplerr.Code]HTTPStatus {
@@ -22,15 +27,37 @@ func DefaultMapping() map[simplerr.Code]HTTPStatus {
 		simplerr.CodePermissionDenied:  http.StatusForbidden,
 		simplerr.CodeUnauthenticated:   http.StatusUnauthorized,
 		simplerr.CodeNotImplemented:    http.StatusNotImplemented,
+		simplerr.CodeMalformedRequest:  http.StatusBadRequest,
 		simplerr.CodeInvalidArgument:   http.StatusBadRequest,
+		simplerr.CodeMissingParameter:  http.StatusBadRequest,
 		simplerr.CodeResourceExhausted: http.StatusTooManyRequests,
+	}
+	return m
+}
+
+// DefaultInverseMapping returns the default mapping of HTTP status codes to SimpleError code
+func DefaultInverseMapping() map[HTTPStatus]simplerr.Code {
+	var m = map[HTTPStatus]simplerr.Code{
+		http.StatusInternalServerError: simplerr.CodeUnknown,
+		http.StatusNotFound:            simplerr.CodeNotFound,
+		http.StatusRequestTimeout:      simplerr.CodeDeadlineExceeded,
+		http.StatusForbidden:           simplerr.CodePermissionDenied,
+		http.StatusUnauthorized:        simplerr.CodeUnauthenticated,
+		http.StatusNotImplemented:      simplerr.CodeNotImplemented,
+		http.StatusBadRequest:          simplerr.CodeMalformedRequest,
+		http.StatusServiceUnavailable:  simplerr.CodeUnavailable,
+		http.StatusMethodNotAllowed:    simplerr.CodeMalformedRequest,
+		http.StatusTooManyRequests:     simplerr.CodeResourceExhausted,
 	}
 	return m
 }
 
 // SetMapping sets the mapping from simplerr.Code to HTTP status code
 func SetMapping(m map[simplerr.Code]HTTPStatus) {
+	lock.Lock()
+	defer lock.Unlock()
 	mapping = m
+
 	simplerrCodes = []simplerr.Code{}
 	// Get a list of simplerr codes to search for in the error chain
 	for c := range m {
@@ -42,6 +69,13 @@ func SetMapping(m map[simplerr.Code]HTTPStatus) {
 	}
 }
 
+// SetInverseMapping sets the mapping from HTTP status code to simplerr.Code
+func SetInverseMapping(m map[HTTPStatus]simplerr.Code) {
+	lock.Lock()
+	defer lock.Unlock()
+	inverseMapping = m
+}
+
 // SetDefaultErrorStatus changes the default HTTP status code for when a translation could not be found.
 // The default status code is 500.
 func SetDefaultErrorStatus(code int) {
@@ -50,6 +84,7 @@ func SetDefaultErrorStatus(code int) {
 
 func init() {
 	SetMapping(DefaultMapping())
+	SetInverseMapping(DefaultInverseMapping())
 }
 
 // SetStatus sets the http.Response status from the error code in the provided error.
@@ -93,4 +128,13 @@ func GetStatus(err error) (status HTTPStatus, found bool) {
 	httpCode := mapping[code]
 
 	return httpCode, true
+}
+
+// GetCode gets the simplerror Code that corresponds to the HTTPStatus. It returns CodeUknown if it cannot map the status.
+func GetCode(status HTTPStatus) (code simplerr.Code, found bool) {
+	code, ok := inverseMapping[status]
+	if !ok {
+		return simplerr.CodeUnknown, false
+	}
+	return code, true
 }

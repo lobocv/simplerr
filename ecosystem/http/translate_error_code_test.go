@@ -2,16 +2,34 @@ package simplehttp
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/lobocv/simplerr"
 )
 
-func TestTranslateErrorCode(t *testing.T) {
+type TestSuite struct {
+	suite.Suite
+}
+
+func TestHTTP(t *testing.T) {
+	s := new(TestSuite)
+
+	// Change the default mappings to test that they apply
+	m := DefaultMapping()
+	m[simplerr.CodeCanceled] = http.StatusRequestTimeout
+	SetMapping(m)
+	SetDefaultErrorStatus(http.StatusInternalServerError)
+
+	invM := DefaultInverseMapping()
+	invM[http.StatusRequestTimeout] = simplerr.CodeCanceled
+	SetInverseMapping(invM)
+	suite.Run(t, s)
+}
+
+func (s *TestSuite) TestTranslateErrorCode() {
 
 	testCases := []struct {
 		err                error
@@ -23,17 +41,13 @@ func TestTranslateErrorCode(t *testing.T) {
 		{simplerr.New("something").Code(simplerr.CodePermissionDenied), http.StatusForbidden, true},
 		{simplerr.New("something").Code(simplerr.CodeCanceled), http.StatusRequestTimeout, true},
 		{simplerr.New("something").Code(simplerr.CodeConstraintViolated), http.StatusInternalServerError, false},
+		{simplerr.New("something").Code(simplerr.CodeMalformedRequest), http.StatusBadRequest, true},
+		{simplerr.New("something").Code(simplerr.CodeMissingParameter), http.StatusBadRequest, true},
 		{fmt.Errorf("wrapped: %w", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusUnauthorized, true},
 		{fmt.Errorf("opaque: %s", simplerr.New("something").Code(simplerr.CodeUnauthenticated)), http.StatusInternalServerError, false},
 		{simplerr.Wrap(simplerr.New("something").Code(simplerr.CodePermissionDenied)), http.StatusForbidden, true},
 		{nil, 200, false}, // default code for httptest.ResponseRecorder is 200
 	}
-
-	// Alter the default mapping
-	m := DefaultMapping()
-	m[simplerr.CodeCanceled] = http.StatusRequestTimeout
-	SetMapping(m)
-	SetDefaultErrorStatus(http.StatusInternalServerError)
 
 	for ii, tc := range testCases {
 		r := httptest.NewRecorder()
@@ -41,12 +55,38 @@ func TestTranslateErrorCode(t *testing.T) {
 
 		// Check that GetStatus returns a status when there is a mapping
 		gotStatus, mappingFound := GetStatus(tc.err)
-		require.Equal(t, tc.expectMappingFound, mappingFound, fmt.Sprintf("test case %d failed", ii))
+		s.Equal(tc.expectMappingFound, mappingFound, fmt.Sprintf("test case %d failed", ii))
 		if mappingFound {
-			require.Equal(t, tc.expected, gotStatus, fmt.Sprintf("test case %d failed", ii))
+			s.Equal(tc.expected, gotStatus, fmt.Sprintf("test case %d failed", ii))
 		}
 
-		require.Equal(t, tc.expected, r.Code, fmt.Sprintf("test case %d failed", ii))
+		s.Equal(tc.expected, r.Code, fmt.Sprintf("test case %d failed", ii))
+	}
+
+}
+
+func (s *TestSuite) TestTranslateStatusCode() {
+
+	testCases := []struct {
+		status             HTTPStatus
+		expected           simplerr.Code
+		expectMappingFound bool
+	}{
+		{http.StatusNotFound, simplerr.CodeNotFound, true},
+		{http.StatusRequestTimeout, simplerr.CodeCanceled, true},
+		{23587253923, simplerr.CodeUnknown, false},
+	}
+
+	for ii, tc := range testCases {
+		gotCode, mappingFound := GetCode(tc.status)
+
+		// Check that GetStatus returns a status when there is a mapping
+		s.Equal(tc.expectMappingFound, mappingFound, fmt.Sprintf("test case %d failed", ii))
+		if mappingFound {
+			s.Equal(tc.expected, gotCode, fmt.Sprintf("test case %d failed", ii))
+		}
+
+		s.Equal(tc.expected, gotCode, fmt.Sprintf("test case %d failed", ii))
 	}
 
 }
