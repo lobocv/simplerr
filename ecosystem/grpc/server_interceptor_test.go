@@ -27,10 +27,12 @@ func TestTranslateErrorCode(t *testing.T) {
 	}
 
 	// Alter the default mapping
+	reg := GetDefaultRegistry()
 	m := DefaultMapping()
 	m[simplerr.CodeMalformedRequest] = codes.InvalidArgument
+	reg.SetMapping(m)
 
-	interceptor := TranslateErrorCode(m)
+	interceptor := TranslateErrorCode(reg)
 	for _, tc := range testCases {
 		_, gotErr := interceptor(context.Background(), nil, nil, func(ctx context.Context, req interface{}) (interface{}, error) {
 			return 1, tc.err
@@ -47,4 +49,28 @@ func TestTranslateErrorCode(t *testing.T) {
 		}
 	}
 
+}
+
+// Test that multiple different registry can be used at the same time
+func TestMultipleRegistry(t *testing.T) {
+	ctx := context.Background()
+	// Create and use two different registries (default and a custom) in the interceptors
+
+	interceptor1 := TranslateErrorCode(nil)
+
+	reg2 := NewRegistry()
+	m2 := DefaultMapping()
+	m2[simplerr.CodeDeadlineExceeded] = codes.Internal
+	reg2.SetMapping(m2)
+	interceptor2 := TranslateErrorCode(reg2)
+
+	_, gotErr := interceptor1(ctx, nil, nil, func(ctx context.Context, req interface{}) (interface{}, error) {
+		return 1, simplerr.New("error occurred").Code(simplerr.CodeDeadlineExceeded)
+	})
+	require.Equal(t, codes.DeadlineExceeded, status.Code(gotErr))
+
+	_, gotErr = interceptor2(ctx, nil, nil, func(ctx context.Context, req interface{}) (interface{}, error) {
+		return 1, simplerr.New("error occurred").Code(simplerr.CodeDeadlineExceeded)
+	})
+	require.Equal(t, codes.Internal, status.Code(gotErr))
 }
