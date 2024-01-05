@@ -21,7 +21,10 @@ type PingService struct {
 func (s *PingService) Ping(_ context.Context, _ *ping.PingRequest) (*ping.PingResponse, error) {
 	// Your implementation of the Ping method goes here
 	fmt.Println("Received Ping request")
-	return nil, s.err
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &ping.PingResponse{}, nil
 }
 
 func setupServerAndClient(port int) (*PingService, ping.PingServiceClient) {
@@ -42,6 +45,10 @@ func setupServerAndClient(port int) (*PingService, ping.PingServiceClient) {
 		}
 	}()
 
+	defaultInverseMapping := DefaultInverseMapping()
+	defaultInverseMapping[codes.DataLoss] = simplerr.CodeResourceExhausted
+	GetDefaultRegistry().SetInverseMapping(defaultInverseMapping)
+
 	interceptor := ReturnSimpleErrors(nil)
 
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", port),
@@ -58,7 +65,7 @@ func setupServerAndClient(port int) (*PingService, ping.PingServiceClient) {
 
 func TestClientInterceptor(t *testing.T) {
 
-	_, client := setupServerAndClient(50051)
+	server, client := setupServerAndClient(50051)
 	_, err := client.Ping(context.Background(), &ping.PingRequest{})
 
 	require.True(t, simplerr.HasErrorCode(err, simplerr.CodeNotFound), "simplerror code can be detected")
@@ -71,6 +78,12 @@ func TestClientInterceptor(t *testing.T) {
 	method, ok := simplerr.GetAttribute(err, AttrGRPCMethod)
 	require.True(t, ok)
 	require.Equal(t, "/ping.PingService/Ping", method, "can get the grpc method which errored")
+
+	// Test the custom added mapping
+	server.err = status.Error(codes.DataLoss, "test error")
+	_, err = client.Ping(context.Background(), &ping.PingRequest{})
+	require.True(t, simplerr.HasErrorCode(err, simplerr.CodeResourceExhausted), "simplerror code can be detected")
+
 }
 
 // When a non grpc error is returned, the client still returns a grpc error with code Unknown
@@ -93,4 +106,12 @@ func TestClientInterceptorNotGPRCError(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "/ping.PingService/Ping", method, "can get the grpc method which errored")
 
+}
+
+func TestClientInterceptorNoError(t *testing.T) {
+	server, client := setupServerAndClient(50053)
+	server.err = nil
+
+	_, err := client.Ping(context.Background(), &ping.PingRequest{})
+	require.Nil(t, err)
 }
