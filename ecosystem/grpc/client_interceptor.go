@@ -11,7 +11,9 @@ import (
 type attr int
 
 const (
+	// AttrGRPCMethod is the simplerr attribute key for retrieving the grpc method
 	AttrGRPCMethod = attr(1)
+	// AttrGRPCStatus is the simplerr attribute key for retrieving the grpc Status object
 	AttrGRPCStatus = attr(2)
 )
 
