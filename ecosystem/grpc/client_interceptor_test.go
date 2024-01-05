@@ -40,7 +40,7 @@ func setupServerAndClient(port int) (*PingService, ping.PingServiceClient) {
 	}
 
 	go func() {
-		if err := server.Serve(listener); err != nil {
+		if err = server.Serve(listener); err != nil {
 			panic(fmt.Sprintf("Error serving: %v", err))
 		}
 	}()
