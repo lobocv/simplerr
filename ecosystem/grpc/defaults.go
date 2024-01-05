@@ -10,6 +10,7 @@ var (
 	defaultRegistry = NewRegistry()
 )
 
+// GetDefaultRegistry returns the currently registered default registry used by this package.
 func GetDefaultRegistry() *Registry {
 	return defaultRegistry
 }
