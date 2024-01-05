@@ -32,7 +32,6 @@ func ReturnSimpleErrors(registry *Registry) grpc.UnaryClientInterceptor {
 		}
 
 		grpcCode := codes.Unknown
-		simplerrCode := simplerr.CodeUnknown
 		msg := err.Error()
 
 		serr := simplerr.New(msg).
@@ -45,7 +44,7 @@ func ReturnSimpleErrors(registry *Registry) grpc.UnaryClientInterceptor {
 			_ = serr.Attr(AttrGRPCStatus, st)
 
 			grpcCode = st.Code()
-			simplerrCode, _ = registry.getGRPCCode(grpcCode)
+			simplerrCode, _ := registry.getGRPCCode(grpcCode)
 			_ = serr.Code(simplerrCode)
 		}
 

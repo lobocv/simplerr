@@ -1,8 +1,3 @@
-# options for analysis running
-run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 2m
-
 issues:
   # Only report issues for changes since master
   new-from-rev: origin/master
@@ -56,8 +51,8 @@ linters:
     - gofmt
     # Checks error handling
     - errcheck
-    # Checks deadcode
-    - deadcode
+    # Checks unused code
+    - unused
     # Linter for Go source code that specializes in simplifying a code
     - gosimple
     # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose
@@ -67,5 +62,3 @@ linters:
     - ineffassign
     # Static code analytics
     - staticcheck
-    # Finds unused struct fields
-    - structcheck
