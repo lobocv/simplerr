@@ -103,7 +103,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil
+		return nil // nolint:unparam
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
@@ -183,7 +183,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil
+		return nil // nolint:unparam
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
@@ -251,7 +251,7 @@ func TestMiddlewareReverseAdapter(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil
+		return nil // nolint:unparam
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
