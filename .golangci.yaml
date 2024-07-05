@@ -1,7 +1,7 @@
 # options for analysis running
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 2m
+  timeout: 2m
 
 issues:
   # Only report issues for changes since master
@@ -10,7 +10,8 @@ issues:
 # output configuration options
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
 
 linters-settings:
   errcheck:
@@ -32,13 +33,8 @@ linters-settings:
     # simplify code: gofmt with `-s` option, true by default
     simplify: true
 
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.8
-
   govet:
     # report about shadowed variables
-    check-shadowing: true
     enable-all: true
     disable:
       # Do not check field memory alignment because in most cases the performance gain is not worth the headache
@@ -56,8 +52,6 @@ linters:
     - gofmt
     # Checks error handling
     - errcheck
-    # Checks deadcode
-    - deadcode
     # Linter for Go source code that specializes in simplifying a code
     - gosimple
     # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose
@@ -67,5 +61,9 @@ linters:
     - ineffassign
     # Static code analytics
     - staticcheck
-    # Finds unused struct fields
-    - structcheck
+    # Reports unused function parameters.
+    - unparam
+    # Check if variables or functions are unused
+    - unused
+    # Remove unnecessary type conversions.
+    - unconvert
