@@ -96,6 +96,7 @@ func ensureHeaderOrder(t *testing.T, resp *httptest.ResponseRecorder, req *http.
 
 func TestPreAndPostCallMiddleware(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 
@@ -103,7 +104,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil // nolint:unparam
+		return nil
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
@@ -176,6 +177,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 
 func TestMiddlewareAdapter(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 
@@ -183,7 +185,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil // nolint:unparam
+		return nil
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
@@ -244,6 +246,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 
 func TestMiddlewareReverseAdapter(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 
@@ -251,7 +254,7 @@ func TestMiddlewareReverseAdapter(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, n, 0)
 
-		return nil // nolint:unparam
+		return nil
 	}
 
 	req, err := http.NewRequest("GET", "url", nil)
