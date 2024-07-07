@@ -96,6 +96,7 @@ func ensureHeaderOrder(t *testing.T, resp *httptest.ResponseRecorder, req *http.
 
 func TestPreAndPostCallMiddleware(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 
@@ -176,6 +177,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 
 func TestMiddlewareAdapter(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 
@@ -244,6 +246,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 
 func TestMiddlewareReverseAdapter(t *testing.T) {
 
+	//nolint:unparam
 	ep := func(writer http.ResponseWriter, request *http.Request) error {
 		request.Header.Add("call", timestamp())
 

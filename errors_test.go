@@ -517,17 +517,6 @@ func (s *TestSuite) TestErrorFormatting() {
 	serr3 := New("something")
 	s.Equal("something", serr3.Error())
 
-	// Change the error formatting style
-	Formatter = func(e *SimpleError) string {
-		parent := e.Unwrap()
-		if parent == nil {
-			return e.GetMessage()
-		}
-		return strings.Join([]string{e.GetMessage(), parent.Error()}, "\n")
-	}
-	s.Equal("wrapper 1\noriginal", serr1.Error())
-	s.Equal("wrapper 2\nwrapper 1\noriginal", serr2.Error())
-	Formatter = DefaultFormatter
 }
 
 func (s *TestSuite) TestStackTrace() {

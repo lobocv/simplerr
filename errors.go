@@ -44,7 +44,10 @@ func New(_fmt string, args ...interface{}) *SimpleError {
 
 // Error satisfies the `error` interface. It uses the `simplerr.Formatter` to generate an error string.
 func (e *SimpleError) Error() string {
-	return Formatter(e)
+	if parent := e.Unwrap(); parent != nil {
+		return fmt.Sprintf("%s: %s", e.GetMessage(), parent.Error())
+	}
+	return e.msg
 }
 
 // Message sets the message text on the error. This message it used to wrap the underlying error, if it exists.
