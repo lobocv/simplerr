@@ -51,7 +51,7 @@ func setupServerAndClient(port int) (*PingService, ping.PingServiceClient) {
 
 	interceptor := ReturnSimpleErrors(nil)
 
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", port),
+	conn, err := grpc.NewClient(fmt.Sprintf(":%d", port),
 		grpc.WithUnaryInterceptor(interceptor),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -73,7 +73,7 @@ func TestClientInterceptor(t *testing.T) {
 
 	st, ok := simplerr.GetAttribute(err, AttrGRPCStatus)
 	require.True(t, ok)
-	require.Equal(t, codes.NotFound, st.(*status.Status).Code(), "can get the grpc Status")
+	require.Equal(t, codes.NotFound, st.(*status.Status).Code(), "can get the grpc Status") // nolint: errcheck
 
 	method, ok := simplerr.GetAttribute(err, AttrGRPCMethod)
 	require.True(t, ok)
@@ -100,7 +100,7 @@ func TestClientInterceptorNotGPRCError(t *testing.T) {
 
 	st, ok := simplerr.GetAttribute(err, AttrGRPCStatus)
 	require.True(t, ok)
-	require.Equal(t, codes.Unknown, st.(*status.Status).Code(), "can get the grpc Status")
+	require.Equal(t, codes.Unknown, st.(*status.Status).Code(), "can get the grpc Status") // nolint: errcheck
 
 	method, ok := simplerr.GetAttribute(err, AttrGRPCMethod)
 	require.True(t, ok)
