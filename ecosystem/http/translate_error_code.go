@@ -28,8 +28,8 @@ func DefaultMapping() map[simplerr.Code]HTTPStatus {
 		simplerr.CodeUnauthenticated:   http.StatusUnauthorized,
 		simplerr.CodeNotImplemented:    http.StatusNotImplemented,
 		simplerr.CodeMalformedRequest:  http.StatusBadRequest,
-		simplerr.CodeInvalidArgument:   http.StatusBadRequest,
-		simplerr.CodeMissingParameter:  http.StatusBadRequest,
+		simplerr.CodeInvalidArgument:   http.StatusUnprocessableEntity,
+		simplerr.CodeMissingParameter:  http.StatusUnprocessableEntity,
 		simplerr.CodeResourceExhausted: http.StatusTooManyRequests,
 	}
 	return m
@@ -45,6 +45,7 @@ func DefaultInverseMapping() map[HTTPStatus]simplerr.Code {
 		http.StatusUnauthorized:        simplerr.CodeUnauthenticated,
 		http.StatusNotImplemented:      simplerr.CodeNotImplemented,
 		http.StatusBadRequest:          simplerr.CodeMalformedRequest,
+		http.StatusUnprocessableEntity: simplerr.CodeInvalidArgument,
 		http.StatusServiceUnavailable:  simplerr.CodeUnavailable,
 		http.StatusMethodNotAllowed:    simplerr.CodeMalformedRequest,
 		http.StatusTooManyRequests:     simplerr.CodeResourceExhausted,
