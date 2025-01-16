@@ -132,7 +132,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 		err := ep(rec, req)
 		require.EqualError(t, err, "pre error in middleware")
 		require.True(t, simplerr.HasErrorCode(err, simplerr.CodeInvalidArgument))
-		require.Equal(t, http.StatusBadRequest, rec.Result().StatusCode)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Result().StatusCode)
 		// There should be no response written because the endpoint should not have been called
 		_, err = rec.Body.ReadByte()
 		require.True(t, err == io.EOF)
@@ -170,7 +170,7 @@ func TestPreAndPostCallMiddleware(t *testing.T) {
 		err := ep(rec, req)
 		require.EqualError(t, err, "post error in middleware")
 		require.True(t, simplerr.HasErrorCode(err, simplerr.CodeInvalidArgument))
-		require.Equal(t, http.StatusBadRequest, rec.Result().StatusCode)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Result().StatusCode)
 	})
 
 }
@@ -222,7 +222,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 		rec := httptest.NewRecorder()
 		NewHandlerFuncAdapter(ep)(rec, req)
 
-		require.Equal(t, http.StatusBadRequest, rec.Result().StatusCode)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Result().StatusCode)
 		// There should be no response written because the endpoint should not have been called
 		_, err = rec.Body.ReadByte()
 		require.True(t, err == io.EOF)
@@ -275,7 +275,7 @@ func TestMiddlewareReverseAdapter(t *testing.T) {
 		rec := httptest.NewRecorder()
 		ep.ServeHTTP(rec, req)
 
-		require.Equal(t, http.StatusBadRequest, rec.Result().StatusCode)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Result().StatusCode)
 		// There should be no response written because the endpoint should not have been called
 		_, err = rec.Body.ReadByte()
 		require.True(t, err == io.EOF)
