@@ -1,8 +1,11 @@
 package simplerr
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -517,6 +520,100 @@ func (s *TestSuite) TestErrorFormatting() {
 	serr3 := New("something")
 	s.Equal("something", serr3.Error())
 
+}
+
+func setupTestLogger() *bytes.Buffer {
+	var output bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&output, nil))
+	slog.SetDefault(logger)
+	return &output
+}
+
+func (s *TestSuite) TestGetLogger() {
+	serr := New("something")
+	s.Equal(slog.Default(), serr.GetLogger(), "without attaching a logger, return the default logger")
+
+	var output bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&output, nil))
+	firstLogger := logger.With("first", 1)
+	_ = serr.Logger(firstLogger)
+	s.Equal(firstLogger, serr.GetLogger(), "return the attached logger")
+
+	secondLogger := logger.With("second", 2)
+	serr2 := Wrapf(serr, "wrapped").Logger(secondLogger)
+	s.Equal(secondLogger, serr2.GetLogger(), "return the first attached logger in the chain")
+
+	serr3 := Wrapf(serr, "wrapped")
+	s.Equal(firstLogger, serr3.GetLogger(), "return the first attached logger in the chain")
+
+}
+
+func (s *TestSuite) TestAttachedLogger() {
+	output := setupTestLogger()
+	logger := slog.Default().With("scoped", "from_attached_logger")
+	original := fmt.Errorf("original")
+	serr1 := Wrapf(original, "wrapper %d", 1).
+		Aux(
+			"aux_first", 1,
+		).Logger(logger.With("scoped_not_used", "this logger is not used because its deeper in the stack"))
+
+	serr2 := Wrapf(serr1, "wrapper %d", 2).
+		Aux("aux_second", 2).Logger(logger)
+
+	l := serr2.GetLogger()
+	l.Info("Write a log")
+
+	got := map[string]any{}
+	err := json.NewDecoder(output).Decode(&got)
+	s.NoError(err)
+
+	s.Contains(got, "scoped")
+	s.Equal(got["scoped"], "from_attached_logger")
+
+	s.NotContains(got, "scoped_not_used")
+
+	s.Contains(got, "aux_first")
+	s.Equal(got["aux_first"], float64(1))
+
+	s.Contains(got, "aux_second")
+	s.Equal(got["aux_second"], float64(2))
+
+}
+
+func (s *TestSuite) TestAuxLogger() {
+	output := setupTestLogger()
+	original := fmt.Errorf("original")
+	serr1 := Wrapf(original, "wrapper %d", 1).
+		Aux(
+			"first_a", 1,
+			"first_b", 2,
+		)
+
+	serr2 := Wrapf(serr1, "wrapper %d", 2).
+		Aux("first_a", 10,
+			"second_a", 0,
+			"second_a", 20, // should overwrite the previous key
+			"second_b", 30,
+		)
+
+	l := serr2.GetLogger()
+	l.Info("Write a log")
+
+	got := map[string]any{}
+	err := json.NewDecoder(output).Decode(&got)
+	s.NoError(err)
+
+	s.Contains(got, "first_a")
+	s.Equal(got["first_a"], float64(10), "first_a should be overwritten with 10 due to name conflict")
+
+	s.Contains(got, "first_b")
+	s.Equal(got["first_b"], float64(2), "first_b should not be overwritten")
+
+	s.Contains(got, "second_a")
+	s.Equal(got["second_a"], float64(20), "second_a should use the latest value due to name conflict")
+
+	s.Contains(got, "second_b")
+	s.Equal(got["second_b"], float64(30))
 }
 
 func (s *TestSuite) TestStackTrace() {
