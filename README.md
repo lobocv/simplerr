@@ -24,7 +24,8 @@ The `SimpleError` allows you to easily:
 
 - Apply an error code to any error. Choose from a list of standard codes or [register](https://pkg.go.dev/github.com/lobocv/simplerr#Registry) your own.
 - Automatically translate `simplerr` (including custom codes) error codes to other standardized codes such as `HTTP/gRPC` via middleware.
-- Attach key-value pairs to errors that can be used with structured loggers.
+- Attach key-value pairs to errors
+- Easily log key-value information from errors in structured loggers (slog)
 - Attach and check for custom attributes similar to the `context` package.
 - Automatically capture stack traces at the point the error is raised.
 - Mark errors as [`silent`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.Silence) so they can be skipped by logging middleware.
@@ -188,10 +189,30 @@ there is a lack of control when dealing only with the simple `string`-backed err
 
 ### Logging with Structured Loggers
 
-It is good practice to use structured logging to improve observability. However, the standard library error does
-not allow for attaching and retrieving key-value pairs on errors. With `simplerr` you can retrieve a superset of all attached
-key-value data on errors in the chain using [`ExtractAuxiliary()`](https://pkg.go.dev/github.com/lobocv/simplerr#ExtractAuxiliary)
-or on the individual error with [`GetAuxiliary()`](https://pkg.go.dev/github.com/lobocv/simplerr#SimpleError.GetAuxiliary).
+It is good practice to use structured logging to improve observability. With `simplerr` you can attach key-value pairs
+to the `SimplerError` and generate a pre-populated structured logger right from the error:
+
+```go
+
+serr := simplerr.New("not enough credits").Aux("current_credits", 10, "requested_credits", 5)
+log := serr.GetLogger()
+log.Error(serr.Error())
+```
+
+This outputs a log line with the structured key-value information from the SimpleError.
+
+> {"time":"2025-01-24T13:12:12.924564-05:00","level":"ERROR","msg":"not enough credits","requested_credits":50,"current_credits":10}
+
+You can also attach an existing structured logger to a SimpleError:
+
+```go
+log := slog.Default().With("flavour", "vanilla")
+serr := simplerr.New("we do not sell that flavor").Logger(log)
+```
+
+When calling the `GetLogger()` method, the returned logger is built by combining key-value pairs for all errors in the 
+chain. This means that wrapping multiple errors that each attach key-value information will return a structured logger
+preserving all the key-value pairs.
 
 ### Benign Errors
 

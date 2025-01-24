@@ -2,6 +2,8 @@ package simplerr
 
 import (
 	"fmt"
+	"log/slog"
+	"slices"
 )
 
 // attribute is a key value pair for attributes on errors
@@ -30,6 +32,8 @@ type SimpleError struct {
 	retriable bool
 	// auxiliary are auxiliary informational fields that can be attached to the error
 	auxiliary map[string]interface{}
+	// logger is a scoped logger that can be attached to the error
+	logger *slog.Logger
 	// attr is a list of custom attributes attached the error
 	attr []attribute
 	// stackTrace is the call stack trace for the error
@@ -181,6 +185,41 @@ func (e *SimpleError) AuxMap(aux map[string]interface{}) *SimpleError {
 func (e *SimpleError) Attr(key, value interface{}) *SimpleError {
 	e.attr = append(e.attr, attribute{Key: key, Value: value})
 	return e
+}
+
+// Logger attaches a structured logger to the error
+func (e *SimpleError) Logger(l *slog.Logger) *SimpleError {
+	e.logger = l
+	return e
+}
+
+// GetLogger returns a structured logger with auxiliary information preset
+// It uses the first found attached structured logger and otherwise uses the default logger
+func (e *SimpleError) GetLogger() *slog.Logger {
+	l := e.logger
+
+	fields := make([]any, 0, 2*len(e.auxiliary))
+	var errInChain = e
+	for errInChain != nil {
+		if l == nil && errInChain.logger != nil {
+			l = errInChain.logger
+		}
+
+		for k, v := range errInChain.GetAuxiliary() {
+			fields = append(fields, v, k) // append backwards because of the slice reversal
+		}
+
+		errInChain = As(errInChain.Unwrap())
+	}
+	// Reverse the slice so that the aux values at the top of the stack take precedent over the lower ones
+	// For cases where there are conflicting keys
+	slices.Reverse(fields)
+
+	if l == nil {
+		l = slog.Default()
+	}
+
+	return l.With(fields...)
 }
 
 // GetDescription returns the description of the error code on the error.
