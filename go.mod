@@ -3,6 +3,7 @@ module github.com/lobocv/simplerr
 go 1.23.2
 
 require (
+	github.com/golang/protobuf v1.5.4
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/grpc v1.69.4
 )

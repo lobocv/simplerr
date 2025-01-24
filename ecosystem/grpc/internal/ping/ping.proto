@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ping;
+
+// Define the service
+service PingService {
+  // RPC method for ping
+  rpc Ping (PingRequest) returns (PingResponse);
+}
+
+// Define the request message
+message PingRequest {
+  // You can add any necessary fields here
+}
+
+// Define the response message
+message PingResponse {
+  // You can add any necessary fields here
+}

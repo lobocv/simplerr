@@ -294,7 +294,7 @@ func main() {
 }
 ```
 
-### Converting HTTP status codes to SimpleError
+### Converting HTTP status codes to SimpleError from HTTP Clients
 
 The standard library `http.DefaultTransport` will return all successfully transported request/responses without error.
 However, most applications will react to those responses by looking at the HTTP status code. From the application's point 
@@ -305,22 +305,69 @@ using `simplehttp.EnableHTTPStatusErrors(rt http.RoundTripper)`.
 
 ## GRPC Status Codes
 
+gRPC status codes can be set automatically by using the [ecosystem/grpc](https://github.com/lobocv/simplerr/tree/master/ecosystem/grpc)
+package to translate `simplerr` error codes to gRPC status codes and vice versa.
+
+### Converting SimpleError to gRPC status codes
 Since GRPC functions return an error, it is even convenient to integrate error code translation using an interceptor (middleware).
-The package [ecosystem/grpc](https://github.com/lobocv/simplerr/tree/master/ecosystem/http) defines an interceptor
+The package [ecosystem/grpc](https://github.com/lobocv/simplerr/tree/master/ecosystem/grpc) defines an interceptor
 that detects if the returned error is a `SimpleError` and then translates the error code into a GRPC status code. A mapping
 for several codes is provided using the `DefaultMapping()` function. This can be changed by providing an alternative mapping
 when creating the interceptor:
 
 ```go
 func main() {
-    // Get the default mapping provided by simplerr
-    m := simplerr.DefaultMapping()
+    // Get the default registry mapping provided by simplerr
+    reg := simplegprc.GetDefaultRegistry()
+    
     // Add another mapping from simplerr code to GRPC code
+    m := simplegprc.DefaultMapping()
     m[simplerr.CodeMalformedRequest] = codes.InvalidArgument
+    
+    // Update the mapping in the default registry
+    reg.SetMapping(m)
+    
     // Create the interceptor by providing the mapping
     interceptor := simplerr.TranslateErrorCode(m)
+    
+    // Attach the interceptor to the server 
+    // ...
 }
 ```
+
+### Converting gRPC status codes to SimpleError from gRPC Clients
+
+You can get your gRPC clients to return simplerr compatible errors by using the `ReturnSimpleErrors` unary client 
+interceptor. This interceptor examines the gRPC code in errors returned by the client and wraps them in an error that
+is compatible with simplerror while also maintaining compatibility with the gprc error checking functions 
+`status.FromError()` and `status.Code()`:
+
+```go
+func main() {
+    // Create the interceptor by providing the mapping. 
+	// The nil argument means to use the default registry.
+    interceptor := ReturnSimpleErrors(nil)
+
+    conn, err := grpc.Dial(":5001",
+            grpc.WithUnaryInterceptor(interceptor),
+        )
+
+    client := ping.NewPingServiceClient(conn)
+}
+```
+
+Using this interceptor, you will be able to extract the grpc method and `*status.Status` object from the error:
+
+```go
+v, ok := simplerr.GetAttribute(err, simplegrpc.AttrGRPCStatus)
+status := v.(*status.Status)
+```
+
+```go
+v, ok := simplerr.GetAttribute(err, simplegrpc.AttrGRPCMethod)
+method := v.(string)
+```
+
 
 # Contributing
 

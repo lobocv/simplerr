@@ -10,13 +10,16 @@ import (
 // HTTPStatus is the HTTP status code
 type HTTPStatus = int
 
-var mapping map[simplerr.Code]HTTPStatus
-var inverseMapping map[HTTPStatus]simplerr.Code
+var (
+	mapping map[simplerr.Code]HTTPStatus
 
-var simplerrCodes []simplerr.Code
-var defaultErrorStatus = http.StatusInternalServerError
+	inverseMapping map[HTTPStatus]simplerr.Code
 
-var lock = sync.Mutex{}
+	simplerrCodes      []simplerr.Code
+	defaultErrorStatus = http.StatusInternalServerError
+
+	lock = sync.Mutex{}
+)
 
 // DefaultMapping returns the default mapping of SimpleError codes to HTTP status codes
 func DefaultMapping() map[simplerr.Code]HTTPStatus {
@@ -131,7 +134,7 @@ func GetStatus(err error) (status HTTPStatus, found bool) {
 	return httpCode, true
 }
 
-// GetCode gets the simplerror Code that corresponds to the HTTPStatus. It returns CodeUknown if it cannot map the status.
+// GetCode gets the simplerror Code that corresponds to the HTTPStatus. It returns CodeUnknown if it cannot map the status.
 func GetCode(status HTTPStatus) (code simplerr.Code, found bool) {
 	code, ok := inverseMapping[status]
 	if !ok {
