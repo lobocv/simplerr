@@ -34,9 +34,8 @@ func ReturnSimpleErrors(registry *Registry) grpc.UnaryClientInterceptor {
 		}
 
 		grpcCode := codes.Unknown
-		msg := err.Error()
 
-		serr := simplerr.New(msg).Attr(AttrGRPCMethod, method) // nolint: govet
+		serr := simplerr.Wrap(err).Attr(AttrGRPCMethod, method) // nolint: govet
 
 		// Check if the error is a gRPC status error
 		// The GRPC framework seems to always return grpc errors on the client side, even if the server does not

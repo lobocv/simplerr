@@ -1,14 +1,14 @@
 name: golangci-lint
-
-# Controls when the action will run. Triggers the workflow on push or pull requests
 on:
   push:
     branches:
       - main
       - master
   pull_request:
+
 permissions:
   contents: read
+
 jobs:
   golangci:
     name: lint
@@ -19,6 +19,6 @@ jobs:
         with:
           go-version: stable
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.63
+          version: v2.1

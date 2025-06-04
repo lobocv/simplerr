@@ -1,69 +1,52 @@
-# options for analysis running
-run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 2m
-
-issues:
-  # Only report issues for changes since master
-  new-from-rev: origin/master
-
-# output configuration options
+version: "2"
 output:
-  # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
   formats:
-    - format: colored-line-number
-
-linters-settings:
-  errcheck:
-    # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
-    # default is false: such cases aren't reported by default.
-    check-type-assertions: true
-
-  # Function length check
-  funlen:
-    lines: 60
-    statements: 40
-
-  # Report deeply nested if statements
-  nestif:
-    # minimal complexity of if statements to report, 5 by default
-    min-complexity: 4
-
-  gofmt:
-    # simplify code: gofmt with `-s` option, true by default
-    simplify: true
-
-  govet:
-    # report about shadowed variables
-    enable-all: true
-    disable:
-      # Do not check field memory alignment because in most cases the performance gain is not worth the headache
-      - fieldalignment
-
+    text:
+      path: stdout
 linters:
-  # Disable the default linters so we can explicitly name the linters we want
-  disable-all: true
-
-  # List of enabled linters
+  default: none
   enable:
-    #####################
-    # Default linters
-    #####################
-    - gofmt
-    # Checks error handling
     - errcheck
-    # Linter for Go source code that specializes in simplifying a code
-    - gosimple
-    # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose
-    # arguments do not align with the format string
     - govet
-    # Detects when assignments to existing variables are not used
     - ineffassign
-    # Static code analytics
     - staticcheck
-    # Reports unused function parameters.
-    - unparam
-    # Check if variables or functions are unused
-    - unused
-    # Remove unnecessary type conversions.
     - unconvert
+    - unparam
+    - unused
+  settings:
+    errcheck:
+      check-type-assertions: true
+    funlen:
+      lines: 60
+      statements: 40
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    nestif:
+      min-complexity: 4
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  new-from-rev: origin/master
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
