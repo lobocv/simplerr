@@ -39,6 +39,7 @@ func (s *TestSuite) TestTranslateErrorCode() {
 		{fmt.Errorf("something"), http.StatusInternalServerError, false},
 		{simplerr.New("something").Code(simplerr.CodeUnknown), http.StatusInternalServerError, false},
 		{simplerr.New("something").Code(simplerr.CodePermissionDenied), http.StatusForbidden, true},
+		{simplerr.New("something").Code(simplerr.CodeUnavailable), http.StatusServiceUnavailable, true},
 		{simplerr.New("something").Code(simplerr.CodeCanceled), http.StatusRequestTimeout, true},
 		{simplerr.New("something").Code(simplerr.CodeConstraintViolated), http.StatusInternalServerError, false},
 		{simplerr.New("something").Code(simplerr.CodeMalformedRequest), http.StatusBadRequest, true},

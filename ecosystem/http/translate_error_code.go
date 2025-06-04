@@ -32,6 +32,7 @@ func DefaultMapping() map[simplerr.Code]HTTPStatus {
 		simplerr.CodeNotImplemented:    http.StatusNotImplemented,
 		simplerr.CodeMalformedRequest:  http.StatusBadRequest,
 		simplerr.CodeInvalidArgument:   http.StatusUnprocessableEntity,
+		simplerr.CodeUnavailable:       http.StatusServiceUnavailable,
 		simplerr.CodeMissingParameter:  http.StatusUnprocessableEntity,
 		simplerr.CodeResourceExhausted: http.StatusTooManyRequests,
 	}
